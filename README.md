@@ -10,7 +10,7 @@
 
 ```bash
 git clone git@github.com:MahmudlHasanMahi/CSE470_Project.git
-cd EKPocket
+cd CSE470_Project
 ```
 
 ## 2. Start the Project
