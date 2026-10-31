@@ -1,6 +1,7 @@
 # EKPocket – Development Setup
 
 ## Requirements
+
 - Git
 - Docker Desktop (or Docker Engine)
 - Docker Compose
@@ -8,7 +9,7 @@
 ## 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone git@github.com:MahmudlHasanMahi/CSE470_Project.git
 cd EKPocket
 ```
 
@@ -20,11 +21,11 @@ docker compose up --build
 
 ## 3. Access the Application
 
-| Service | URL |
-|---|---|
+| Service          | URL                   |
+| ---------------- | --------------------- |
 | Frontend (React) | http://localhost:5173 |
 | Backend (NestJS) | http://localhost:3000 |
-| PostgreSQL | localhost:5432 |
+| PostgreSQL       | localhost:5432        |
 
 ## 4. Stop the Project
 
@@ -37,4 +38,3 @@ docker compose down
 ```bash
 docker compose logs -f
 ```
-
