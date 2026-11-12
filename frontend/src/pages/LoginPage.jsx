@@ -22,12 +22,10 @@ import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import GoogleIcon from "../components/GoogleIcon";
 
 const handleGoogleLogin = () => {
-  // TODO: redirect to the backend's Google OAuth route
   console.log("Google login clicked");
 };
 
 const handleBiometricLogin = () => {
-  // TODO: WebAuthn / passkey flow
   console.log("Biometric login clicked");
 };
 
@@ -136,8 +134,7 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      const { accessToken } = await loginRequest(form.email, form.password);
-      localStorage.setItem("accessToken", accessToken);
+      await loginRequest(form.email, form.password);
       window.location.href = "/dashboard/";
     } catch (err) {
       setError(err.message);
@@ -169,7 +166,6 @@ export default function LoginPage() {
           noValidate
           sx={{ width: "100%", maxWidth: 400 }}
         >
-          {/* Logo shown only on mobile, where the brand panel is hidden */}
           <Box
             sx={{
               display: { xs: "flex", md: "none" },
