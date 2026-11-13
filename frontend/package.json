@@ -17,8 +17,11 @@
     "@fontsource/momo-signature": "^5.3.0",
     "@mui/icons-material": "^9.5.0",
     "@mui/material": "^9.5.0",
+    "@simplewebauthn/browser": "^14.0.0",
+    "framer-motion": "^14.13.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

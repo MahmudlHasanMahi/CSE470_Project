@@ -6,7 +6,7 @@ const page = (path) => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  appType: "mpa", 
+  appType: "mpa",
   server: {
     host: true,
     port: 5173,
@@ -20,7 +20,8 @@ export default defineConfig({
       input: {
         home: page("./index.html"),
         login: page("./login/index.html"),
-        dashboard: page("./dashboard/index.html"),
+        manager: page("./manager/index.html"),
+        employee: page("./employee/index.html"),
       },
     },
   },
