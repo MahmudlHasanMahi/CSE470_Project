@@ -20,12 +20,17 @@ services:
     container_name: ekpocket_backend
     ports:
       - "3000:3000"
+      - "5555:5555"
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
       - ./frontend/dist:/app/public:ro
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@database:5432/ekpocket_db
+      JWT_SECRET: ekPocket
+      WEBAUTHN_RP_ID: localhost
+      WEBAUTHN_ORIGIN: http://localhost:5173
+
     depends_on:
       database:
         condition: service_healthy
