@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Alert,
   Avatar,
@@ -40,6 +40,8 @@ import SendRounded from "@mui/icons-material/SendRounded";
 import FingerprintRounded from "@mui/icons-material/FingerprintRounded";
 import WarningAmberRounded from "@mui/icons-material/WarningAmberRounded";
 import { Stagger, fadeUp, CountUp, GrowWidth } from "../motion.jsx";
+import { useMe } from "../../../api/users.api.js";
+
 import {
   Amount,
   Btn,
@@ -106,9 +108,9 @@ function Header({
   onExportReport,
   onOpenNewTransfer,
 }) {
-  const { user } = scope;
-  const subtitle = `${user.department} Member Workspace · ${wallets.length} accessible wallets`;
+  const { data: user, isLoading, error } = useMe();
 
+  const subtitle = `${user?.department} Member Workspace · ${user?.walletCount} accessible wallets`;
   return (
     <Box
       sx={{
@@ -125,7 +127,7 @@ function Header({
           variant="h4"
           sx={{ fontWeight: 700, letterSpacing: "-0.02em" }}
         >
-          Good morning, {user.name.split(" ")[0]}
+          Good morning, {user?.name}
         </Typography>
         <Typography color="text.secondary" sx={{ mt: 0.4, fontSize: 14.5 }}>
           {subtitle}
@@ -493,7 +495,9 @@ function ActivityFeed({ d, onDecideApproval, onNavigate }) {
 }
 
 /* ───────── View ───────── */
-export function OverviewView({
+import React from "react";
+
+const Dashboard = ({
   roleKey,
   wallets,
   budgets,
@@ -505,7 +509,7 @@ export function OverviewView({
   onNavigate,
   onOpenNewTransfer,
   onExportReport,
-}) {
+}) => {
   const scope = getScope(roleKey);
   const { isEmployee, byDept } = scope;
 
@@ -595,4 +599,5 @@ export function OverviewView({
       />
     </Stagger>
   );
-}
+};
+export default Dashboard;
