@@ -77,25 +77,28 @@ const WalletCard = ({ key, w, setSelectedId }) => {
             {money(w.balance)}
           </Typography>
         </Box>
-
-        <Meter
-          sx={{ mb: 2 }}
-          value={pct}
-          height={7}
-          delay={0.2 + key * 0.08}
-          color={meterColor(pct)}
-          left={<Caption>Monthly Spend Allowance</Caption>}
-          right={
-            <Caption fontWeight={600} color="text.primary">
-              {money(w.spentThisMonth)} / {money(w.monthlyLimit)}
-            </Caption>
-          }
-        />
+        {w.membership && (
+          <Meter
+            sx={{ mb: 2 }}
+            value={pct}
+            height={7}
+            delay={0.2 + key * 0.08}
+            color={meterColor(pct)}
+            left={<Caption>Monthly Spend Allowance</Caption>}
+            right={
+              <Caption fontWeight={600} color="text.primary">
+                {money(w.spentThisMonth)} / {money(w.monthlyLimit)}
+              </Caption>
+            }
+          />
+        )}
 
         <Tile row p={1.25}>
           <Caption>Per-Transaction Limit</Caption>
           <Caption fontWeight={700} color="text.primary">
-            {money(w.perTxnLimit)}
+            {w.membership
+              ? money(w.membership?.perTransactionLimit)
+              : "No limit"}
           </Caption>
         </Tile>
       </Box>
