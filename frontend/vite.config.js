@@ -3,9 +3,29 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 
 const page = (path) => fileURLToPath(new URL(path, import.meta.url));
+function mpaFallback() {
+  return {
+    name: "mpa-fallback",
+    configureServer(server) {
+      return () => {
+        server.middlewares.use((req, res, next) => {
+          const url = req.url?.split("?")[0];
+
+          if (url?.startsWith("/employee/")) {
+            req.url = "/employee/index.html";
+          } else if (url?.startsWith("/manager/")) {
+            req.url = "/manager/index.html";
+          }
+
+          next();
+        });
+      };
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), mpaFallback()],
   appType: "mpa",
   server: {
     host: true,

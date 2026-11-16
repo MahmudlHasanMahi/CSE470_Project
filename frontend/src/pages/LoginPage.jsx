@@ -16,10 +16,10 @@ import LockOutlined from "@mui/icons-material/LockOutlined";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { colors, brandFont } from "../theme";
-import { loginRequest } from "../api/auth";
 import { Divider } from "@mui/material";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import GoogleIcon from "../components/GoogleIcon";
+import { useLogin } from "../api/auth.api";
 
 const handleGoogleLogin = () => {
   console.log("Google login clicked");
@@ -120,6 +120,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const login = useLogin();
+
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -131,15 +133,12 @@ export default function LoginPage() {
       setError("Please enter your email and password.");
       return;
     }
-
-    try {
-      setLoading(true);
-      await loginRequest(form.email, form.password);
-      window.location.href = "/dashboard/";
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
+    const { email, password } = form;
+    e.preventDefault();
+    login.mutate(
+      { email, password },
+      { onSuccess: () => (window.location.href = "/login/") },
+    );
   };
 
   return (

@@ -1,12 +1,10 @@
-import { useState } from "react";
-import { Alert, Snackbar } from "@mui/material";
-import { AnimatePresence, motion } from "framer-motion";
-import { NavigationShell } from "./components/NavigationShell.jsx";
-import { ConfirmDialog } from "./components/SharedUI.jsx";
-import { OverviewView } from "./views/OverviewView.jsx";
-import { WalletsView } from "./views/WalletsView.jsx";
 import { TransactionsView } from "./views/TransactionsView.jsx";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { ApprovalsView } from "./views/ApprovalsView.jsx";
+import { WalletsView } from "./views/WalletsView.jsx";
+import { Alert, Snackbar } from "@mui/material";
+import { useState } from "react";
+import Dashboard from "./views/Dashboard";
 import {
   BudgetsView,
   RecurringView,
@@ -35,7 +33,9 @@ import {
   ROLES,
   money,
 } from "./mockData.js";
+
 import { NOW, getScope, makeId, useList } from "./helpers.js";
+import EmployeePageLayout from "./views/EmployeePageLayout.jsx";
 
 const toggle = (key, a, b) => (item) => ({ [key]: item[key] === a ? b : a });
 
@@ -59,12 +59,6 @@ const postedTx = ({ gateway, ...tx }) => ({
 export default function EmployeePage() {
   const [roleKey, setRoleKey] = useState("dept_admin");
   const [activeTab, setActiveTab] = useState("overview");
-  const [logoutOpen, setLogoutOpen] = useState(false);
-  const [toast, setToast] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
 
   const [wallets, walletList] = useList(INITIAL_WALLETS);
   const [budgets, budgetList] = useList(INITIAL_BUDGETS);
@@ -98,19 +92,6 @@ export default function EmployeePage() {
       before,
       after,
     });
-
-  /* ───── Navigation ───── */
-  const selectTab = (id) =>
-    id === "logout" ? setLogoutOpen(true) : setActiveTab(id);
-
-  const changeRole = (next) => {
-    setRoleKey(next);
-    if (!ROLES[next].permissions.includes(activeTab)) setActiveTab("overview");
-    notify(
-      `Switched workspace view to ${ROLES[next].label} (${ROLES[next].user.name})`,
-      "info",
-    );
-  };
 
   /* ───── Approvals ───── */
   const decideApproval = (id, decision, note = "") => {
@@ -345,7 +326,7 @@ export default function EmployeePage() {
   /* ───── Views ───── */
   const views = {
     overview: (
-      <OverviewView
+      <Dashboard
         {...{
           roleKey,
           wallets,
@@ -435,54 +416,22 @@ export default function EmployeePage() {
   views.settings = views.profile;
 
   return (
-    <NavigationShell
-      {...{ activeTab, roleKey, notifications, badges }}
-      onSelectTab={selectTab}
-      onChangeRole={changeRole}
-      onMarkAllRead={markAllRead}
-      onMarkRead={markRead}
-      searchData={{ wallets, transactions }}
-    >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${roleKey}-${activeTab}`}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.22 }}
-        >
-          {views[activeTab]}
-        </motion.div>
-      </AnimatePresence>
-
-      <ConfirmDialog
-        open={logoutOpen}
-        onClose={() => setLogoutOpen(false)}
-        onConfirm={() => {
-          setLogoutOpen(false);
-          notify("Session locked. Redirecting to EkPocket sign-in...", "info");
-        }}
-        title="Sign Out of EkPocket?"
-        description="Your active WebAuthn session token will be terminated on this browser."
-        confirmLabel="Sign Out"
-        confirmColor="error"
-      />
-
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={3600}
-        onClose={closeToast}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert
-          onClose={closeToast}
-          severity={toast.severity}
-          variant="filled"
-          sx={{ borderRadius: "10px" }}
-        >
-          {toast.message}
-        </Alert>
-      </Snackbar>
-    </NavigationShell>
+    <>
+      <Routes>
+        <Route path="/employee" element={<EmployeePageLayout />}>
+          <Route
+            index
+            element={<Navigate to="/employee/dashboard" replace />}
+          />
+          <Route path="dashboard" element={views["overview"]} />
+          <Route path="wallets" element={views["wallets"]} />
+          <Route path="transactions" element={views["transactions"]} />
+          <Route path="approvals" element={views["approvals"]} />
+          <Route path="notifications" element={views["notifications"]} />
+          <Route path="profile" element={views["profile"]} />
+          <Route path="settings" element={views["settings"]} />
+        </Route>
+      </Routes>
+    </>
   );
 }

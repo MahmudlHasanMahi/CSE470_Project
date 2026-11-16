@@ -28,13 +28,6 @@ import GridViewRounded from "@mui/icons-material/GridViewRounded";
 import AccountBalanceWalletRounded from "@mui/icons-material/AccountBalanceWalletRounded";
 import SwapHorizRounded from "@mui/icons-material/SwapHorizRounded";
 import FactCheckRounded from "@mui/icons-material/FactCheckRounded";
-import PieChartRounded from "@mui/icons-material/PieChartRounded";
-import AutorenewRounded from "@mui/icons-material/AutorenewRounded";
-import SavingsRounded from "@mui/icons-material/SavingsRounded";
-import CorporateFareRounded from "@mui/icons-material/CorporateFareRounded";
-import GroupsRounded from "@mui/icons-material/GroupsRounded";
-import AdminPanelSettingsRounded from "@mui/icons-material/AdminPanelSettingsRounded";
-import HistoryRounded from "@mui/icons-material/HistoryRounded";
 import NotificationsRounded from "@mui/icons-material/NotificationsRounded";
 import PersonRounded from "@mui/icons-material/PersonRounded";
 import SettingsRounded from "@mui/icons-material/SettingsRounded";
@@ -47,6 +40,9 @@ import FingerprintRounded from "@mui/icons-material/FingerprintRounded";
 import SwapVertRounded from "@mui/icons-material/SwapVertRounded";
 import { Caption, lineColor } from "./SharedUI.jsx";
 import { ROLES, money } from "../mockData.js";
+import NavigationBar from "./NavigationBar.jsx";
+import { useMe } from "../../../api/users.api.js";
+import { useLogout } from "../../../api/auth.api.js";
 
 export const NAV_GROUPS = [
   {
@@ -103,230 +99,6 @@ const userAvatar = {
   fontWeight: 700,
 };
 const menuPaper = (sx) => ({ sx: { borderRadius: "12px", mt: 1, ...sx } });
-
-/* ───────── Sidebar ───────── */
-function SidebarContent({
-  collapsed,
-  onToggleCollapse,
-  activeTab,
-  onSelectTab,
-  role,
-  badges,
-  isMobile,
-}) {
-  const mini = collapsed && !isMobile; // icon-only rail
-  const allowed = new Set(role.permissions);
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        p: mini ? 1.5 : 2,
-        bgcolor: "background.default",
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: mini ? "center" : "space-between",
-          px: mini ? 0 : 1,
-          mb: 2,
-          minHeight: 44,
-        }}
-      >
-        {!mini && (
-          <Box sx={{ display: "flex", alignItems: "baseline", gap: 1 }}>
-            <Typography
-              sx={{
-                fontFamily: '"Grand Hotel", cursive',
-                fontSize: 33,
-                lineHeight: 1,
-                color: "primary.main",
-              }}
-            >
-              EkPocket
-            </Typography>
-            <Chip
-              size="small"
-              label="Enterprise"
-              sx={{
-                height: 20,
-                fontSize: 10.5,
-                fontWeight: 600,
-                bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
-                color: "primary.main",
-              }}
-            />
-          </Box>
-        )}
-        {!isMobile && (
-          <IconButton size="small" onClick={onToggleCollapse} sx={iconBox}>
-            {collapsed ? (
-              <ChevronRightRounded fontSize="small" />
-            ) : (
-              <ChevronLeftRounded fontSize="small" />
-            )}
-          </IconButton>
-        )}
-      </Box>
-
-      {/* Sections */}
-      <Box sx={{ flex: 1, overflowY: "auto", pr: 0.25 }}>
-        {NAV_GROUPS.map(({ group, items }) => {
-          const visible = items.filter(
-            (i) => i.id === "logout" || allowed.has(i.id),
-          );
-          if (!visible.length) return null;
-          return (
-            <Box key={group} sx={{ mb: 2 }}>
-              {!mini && (
-                <Typography
-                  variant="overline"
-                  sx={{
-                    px: 1.5,
-                    mb: 0.5,
-                    display: "block",
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    letterSpacing: "0.08em",
-                    color: "text.secondary",
-                  }}
-                >
-                  {group}
-                </Typography>
-              )}
-              <List disablePadding sx={{ display: "grid", gap: 0.4 }}>
-                {visible.map(({ id, label, Icon, badgeKey }) => {
-                  const active = activeTab === id;
-                  const count = badges[badgeKey] || 0;
-                  const icon = <Icon fontSize="small" />;
-                  const button = (
-                    <ListItemButton
-                      key={id}
-                      onClick={() => onSelectTab(id)}
-                      sx={{
-                        borderRadius: "12px",
-                        py: 0.9,
-                        px: mini ? 1.25 : 1.5,
-                        justifyContent: mini ? "center" : "flex-start",
-                        position: "relative",
-                        color: active
-                          ? "#fff"
-                          : id === "logout"
-                            ? "error.main"
-                            : "text.primary",
-                        "&:hover": {
-                          bgcolor: active
-                            ? "transparent"
-                            : (t) => alpha(t.palette.primary.main, 0.08),
-                        },
-                      }}
-                    >
-                      {active && (
-                        <Box
-                          component={motion.div}
-                          layoutId="ekpocket-nav-pill"
-                          transition={{
-                            type: "spring",
-                            stiffness: 420,
-                            damping: 34,
-                          }}
-                          sx={{
-                            position: "absolute",
-                            inset: 0,
-                            bgcolor: "primary.main",
-                            borderRadius: "12px",
-                            boxShadow: (t) =>
-                              `0 6px 16px ${alpha(t.palette.primary.main, 0.32)}`,
-                          }}
-                        />
-                      )}
-                      <ListItemIcon
-                        sx={{
-                          minWidth: mini ? "auto" : 34,
-                          position: "relative",
-                          color: active
-                            ? "#fff"
-                            : id === "logout"
-                              ? "error.main"
-                              : "text.secondary",
-                        }}
-                      >
-                        {count > 0 ? (
-                          <Badge
-                            badgeContent={count}
-                            color={active ? "default" : "primary"}
-                          >
-                            {icon}
-                          </Badge>
-                        ) : (
-                          icon
-                        )}
-                      </ListItemIcon>
-                      {!mini && (
-                        <ListItemText
-                          primary={label}
-                          primaryTypographyProps={{
-                            fontSize: 13.75,
-                            fontWeight: active ? 600 : 500,
-                            noWrap: true,
-                          }}
-                          sx={{ position: "relative" }}
-                        />
-                      )}
-                    </ListItemButton>
-                  );
-                  return mini ? (
-                    <Tooltip key={id} title={label} placement="right">
-                      {button}
-                    </Tooltip>
-                  ) : (
-                    button
-                  );
-                })}
-              </List>
-            </Box>
-          );
-        })}
-      </Box>
-
-      {/* User card */}
-      <Box
-        onClick={() => onSelectTab("profile")}
-        sx={{
-          mt: 1,
-          p: mini ? 1 : 1.5,
-          borderRadius: "12px",
-          bgcolor: "background.paper",
-          border: 1,
-          borderColor: lineColor,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: mini ? "center" : "flex-start",
-          gap: 1.25,
-          cursor: "pointer",
-          "&:hover": { borderColor: "primary.main" },
-        }}
-      >
-        <Avatar sx={userAvatar}>{role.user.avatar}</Avatar>
-        {!mini && (
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="body2" fontWeight={600} noWrap>
-              {role.user.name}
-            </Typography>
-            <Caption block noWrap>
-              {role.user.department} · {role.badge}
-            </Caption>
-          </Box>
-        )}
-      </Box>
-    </Box>
-  );
-}
-
 /* ───────── Top-bar popups ───────── */
 function NotificationsPopover({
   anchor,
@@ -432,6 +204,8 @@ function ProfileMenu({ anchor, onClose, user, onSelectTab }) {
     { tab: "profile", label: "Biometric Devices", Icon: FingerprintRounded },
     { tab: "settings", label: "Settings", Icon: SettingsRounded },
   ];
+  const logout = useLogout();
+
   const go = (tab) => {
     onClose();
     onSelectTab(tab);
@@ -446,9 +220,9 @@ function ProfileMenu({ anchor, onClose, user, onSelectTab }) {
     >
       <Box sx={{ px: 2, py: 1.25 }}>
         <Typography variant="body2" fontWeight={700}>
-          {user.name}
+          {user?.name}
         </Typography>
-        <Caption>{user.email}</Caption>
+        <Caption>{user?.email}</Caption>
       </Box>
       <Divider />
       {entries.map(({ tab, label, Icon }) => (
@@ -460,106 +234,13 @@ function ProfileMenu({ anchor, onClose, user, onSelectTab }) {
         </MenuItem>
       ))}
       <Divider />
-      <MenuItem sx={{ color: "error.main" }} onClick={() => go("logout")}>
+      <MenuItem sx={{ color: "error.main" }} onClick={() => logout.mutate()}>
         <ListItemIcon sx={{ color: "error.main" }}>
           <LogoutRounded fontSize="small" />
         </ListItemIcon>
         Logout
       </MenuItem>
     </Menu>
-  );
-}
-
-function QuickSearch({ open, onClose, role, searchData, onSelectTab }) {
-  const [query, setQuery] = useState("");
-  const q = query.trim().toLowerCase();
-  const has = (...fields) => fields.some((f) => f.toLowerCase().includes(q));
-
-  const results = !q
-    ? []
-    : [
-        ...NAV_ITEMS.filter(
-          (i) => role.permissions.includes(i.id) && has(i.label),
-        ).map((i) => ({
-          type: "Page",
-          title: i.label,
-          meta: "Navigate to section",
-          tab: i.id,
-        })),
-        ...searchData.wallets
-          .filter((w) => has(w.name, w.department))
-          .map((w) => ({
-            type: "Wallet",
-            title: w.name,
-            meta: `${w.department} · Balance ${money(w.balance)}`,
-            tab: "wallets",
-          })),
-        ...searchData.transactions
-          .filter((t) => has(t.desc, t.id))
-          .map((t) => ({
-            type: "Transaction",
-            title: `${t.id} — ${t.desc}`,
-            meta: `${t.wallet} · ${money(Math.abs(t.amount))}`,
-            tab: "transactions",
-          })),
-      ].slice(0, 8);
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: "12px",
-          bgcolor: "background.default",
-          border: 1,
-          borderColor: lineColor,
-        },
-      }}
-    >
-      <DialogContent sx={{ p: 2 }}>
-        <TextField
-          autoFocus
-          fullWidth
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search wallets, transactions, approvals, or jump to a page..."
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchRounded color="primary" />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <List sx={{ mt: 1 }}>
-          {results.length === 0 ? (
-            <Caption block sx={{ px: 1, py: 2 }}>
-              {q
-                ? "No matching records found."
-                : "Type a keyword like 'Singapore', 'AWS', 'Wallets', or 'Approvals'."}
-            </Caption>
-          ) : (
-            results.map((r, i) => (
-              <ListItemButton
-                key={i}
-                sx={{ borderRadius: "10px" }}
-                onClick={() => {
-                  onClose();
-                  setQuery("");
-                  onSelectTab(r.tab);
-                }}
-              >
-                <ListItemText primary={r.title} secondary={r.meta} />
-                <Chip size="small" label={r.type} variant="outlined" />
-              </ListItemButton>
-            ))
-          )}
-        </List>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -583,10 +264,13 @@ export function NavigationShell({
   const [profileAnchor, setProfileAnchor] = useState(null);
   const [roleAnchor, setRoleAnchor] = useState(null);
 
+  // const [users, setUsers] = useState(null);
+  const { data: user, isLoading, error } = useMe();
+
   const role = ROLES[roleKey] || ROLES.dept_admin;
   const activeLabel =
     NAV_ITEMS.find((i) => i.id === activeTab)?.label || "Dashboard";
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  // const unreadCount = notifications.filter((n) => n.unread).length;
 
   // ⌘K / Ctrl+K toggles quick search
   useEffect(() => {
@@ -600,11 +284,7 @@ export function NavigationShell({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const handleNav = (id) => {
-    setMobileOpen(false);
-    onSelectTab(id);
-  };
-  const sidebarProps = { activeTab, onSelectTab: handleNav, role, badges };
+  const sidebarProps = { activeTab, role, badges };
 
   return (
     <Box
@@ -620,8 +300,10 @@ export function NavigationShell({
         sx={{
           display: { xs: "none", md: "block" },
           width: collapsed ? 82 : 264,
+          minWidth: collapsed ? 82 : 264,
           flexShrink: 0,
-          transition: "width 0.24s ease",
+          overflow: "hidden",
+          transition: "width 0.24s ease, min-width 0.24s ease",
           position: "sticky",
           top: 0,
           height: "100vh",
@@ -629,7 +311,7 @@ export function NavigationShell({
           borderColor: lineColor,
         }}
       >
-        <SidebarContent
+        <NavigationBar
           {...sidebarProps}
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed((c) => !c)}
@@ -642,7 +324,7 @@ export function NavigationShell({
         onClose={() => setMobileOpen(false)}
         PaperProps={{ sx: { width: 272, bgcolor: "background.default" } }}
       >
-        <SidebarContent {...sidebarProps} collapsed={false} isMobile />
+        <NavigationBar {...sidebarProps} collapsed={false} isMobile />
       </Drawer>
 
       <Box
@@ -687,7 +369,7 @@ export function NavigationShell({
             </Typography>
             <Chip
               size="small"
-              label={role.user.department}
+              label={user?.department}
               sx={{
                 height: 22,
                 fontSize: 11.5,
@@ -700,34 +382,6 @@ export function NavigationShell({
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-            <Button
-              size="small"
-              onClick={() => setSearchOpen(true)}
-              startIcon={<SearchRounded fontSize="small" />}
-              sx={{
-                ...iconBox,
-                display: { xs: "none", sm: "inline-flex" },
-                color: "text.secondary",
-                px: 1.5,
-                py: 0.65,
-                textTransform: "none",
-                minWidth: 190,
-                justifyContent: "space-between",
-              }}
-            >
-              <span>Quick jump...</span>
-              <Chip
-                size="small"
-                label="⌘K"
-                sx={{
-                  height: 20,
-                  fontSize: 11,
-                  bgcolor: "background.default",
-                  ml: 1,
-                }}
-              />
-            </Button>
-
             <Button
               size="small"
               variant="outlined"
@@ -777,9 +431,9 @@ export function NavigationShell({
               onClick={(e) => setNotifAnchor(e.currentTarget)}
               sx={iconBox}
             >
-              <Badge badgeContent={unreadCount} color="primary">
+              {/* <Badge badgeContent={unreadCount} color="primary">
                 <NotificationsRounded fontSize="small" />
-              </Badge>
+              </Badge> */}
             </IconButton>
 
             <IconButton
@@ -805,7 +459,7 @@ export function NavigationShell({
         </Box>
       </Box>
 
-      <NotificationsPopover
+      {/* <NotificationsPopover
         anchor={notifAnchor}
         onClose={() => setNotifAnchor(null)}
         notifications={notifications}
@@ -813,18 +467,11 @@ export function NavigationShell({
         onMarkAllRead={onMarkAllRead}
         onMarkRead={onMarkRead}
         onSelectTab={onSelectTab}
-      />
+      /> */}
       <ProfileMenu
         anchor={profileAnchor}
         onClose={() => setProfileAnchor(null)}
-        user={role.user}
-        onSelectTab={onSelectTab}
-      />
-      <QuickSearch
-        open={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        role={role}
-        searchData={searchData}
+        user={user}
         onSelectTab={onSelectTab}
       />
     </Box>
