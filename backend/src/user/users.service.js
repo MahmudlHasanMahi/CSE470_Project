@@ -19,12 +19,23 @@ export class UsersService {
     });
     if (!user || user.status !== 'active') throw new UnauthorizedException();
 
+    // wallets the user owns (0 or 1, since Wallet.userId is unique)
+    const ownWallets = await this.prisma.wallet.count({
+      where: { userId, status: 'active' },
+    });
+
+    // wallets the user was added to as a member
+    const memberWallets = await this.prisma.walletMember.count({
+      where: { userId, status: 'active', wallet: { status: 'active' } },
+    });
+
     return {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role?.name ?? null,
+      role: user.role.name,
       department: user.department.name,
+      walletCount: ownWallets + memberWallets,
     };
   }
 }
