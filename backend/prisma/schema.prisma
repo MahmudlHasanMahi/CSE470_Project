@@ -8,25 +8,27 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  name       String
-  email      String   @unique
-  status     String   @default("active")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  credential    PasswordCredential?
-  refreshTokens RefreshToken[]
-  biometricDevices BiometricDevice[] 
+  credential       PasswordCredential?
+  refreshTokens    RefreshToken[]
+  biometricDevices BiometricDevice[]
 
   roleId String? @map("role_id")
   role   Role?   @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
-  departmentId String? @map("department_id")
+  departmentId      String?     @map("department_id")
   department        Department? @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
   managedDepartment Department? @relation("DepartmentManager")
 
   wallet            Wallet?
   walletMemberships WalletMember[]
+
+  createdTxns Txn[] @relation("TxnCreatedBy")
 
   @@map("users")
 }
@@ -103,7 +105,7 @@ model Department {
 model Wallet {
   id           String   @id @default(uuid())
   name         String
-  type         String   @default("Department") 
+  type         String   @default("Department")
   userId       String?  @unique @map("user_id")
   departmentId String?  @unique @map("department_id")
   balance      Decimal  @default(0) @db.Decimal(14, 2)
@@ -111,9 +113,12 @@ model Wallet {
   status       String   @default("active")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  user         User?        @relation(fields: [userId], references: [id], onDelete: Restrict)
-  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  members      WalletMember[]
+  user       User?          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  department Department?    @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  members    WalletMember[]
+
+  outgoingTxns Txn[] @relation("TxnSource")
+  incomingTxns Txn[] @relation("TxnDestination")
 
   @@map("wallet")
 }
@@ -129,7 +134,7 @@ model WalletMember {
   rules               Json     @default("{}")
   status              String   @default("active")
 
-  createdAt           DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -138,3 +143,28 @@ model WalletMember {
   @@map("wallet_member")
 }
 
+model Txn {
+  id                  String  @id @default(uuid())
+  reference           String  @unique
+  categoryId          String? @map("category_id")
+  amount              Decimal @db.Decimal(14, 2)
+  status              String  @default("pending")
+  sourceWalletId      String? @map("source_wallet_id")
+  destinationWalletId String? @map("destination_wallet_id")
+  description         String?
+
+  recurringPaymentId String?  @map("recurring_payment_id")
+  createdBy          String   @map("created_by")
+  occurredAt         DateTime @default(now()) @map("occurred_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  sourceWallet      Wallet? @relation("TxnSource", fields: [sourceWalletId], references: [id], onDelete: Restrict)
+  destinationWallet Wallet? @relation("TxnDestination", fields: [destinationWalletId], references: [id], onDelete: Restrict)
+
+  creator User @relation("TxnCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([sourceWalletId, occurredAt])
+  @@index([destinationWalletId])
+  @@map("txn")
+}
