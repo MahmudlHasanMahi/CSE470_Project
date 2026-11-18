@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Alert, Snackbar } from "@mui/material";
 import { AnimatePresence, motion } from "framer-motion";
 import { NavigationShell } from "./components/NavigationShell.jsx";
@@ -9,9 +10,11 @@ import { TransactionsView } from "./views/TransactionsView.jsx";
 import { ApprovalsView } from "./views/ApprovalsView.jsx";
 import {
   BudgetsView,
-  RecurringView,
   SavingsView,
 } from "./views/BudgetsRecurringSavings.jsx";
+import LedgerPage from "../Employee/views/LedgerPage.jsx";
+import RecurringPage from "../Employee/views/RecurringPage.jsx";
+import TeamLedgerPage from "./TeamLedgerPage.jsx";
 import {
   AuditLogsView,
   DepartmentsView,
@@ -57,8 +60,11 @@ const postedTx = ({ gateway, ...tx }) => ({
 });
 
 export default function ManagerPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [roleKey, setRoleKey] = useState("dept_admin");
-  const [activeTab, setActiveTab] = useState("overview");
+  const routeTab = location.pathname.split("/")[2] || "dashboard";
+  const activeTab = routeTab === "dashboard" ? "overview" : routeTab;
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [toast, setToast] = useState({
     open: false,
@@ -70,7 +76,7 @@ export default function ManagerPage() {
   const [budgets, budgetList] = useList(INITIAL_BUDGETS);
   const [approvals, approvalList] = useList(INITIAL_APPROVALS);
   const [transactions, txList] = useList(INITIAL_TRANSACTIONS);
-  const [recurring, recurringList] = useList(INITIAL_RECURRING);
+  const [recurring] = useList(INITIAL_RECURRING);
   const [savings, savingsList] = useList(INITIAL_SAVINGS);
   const [departments, departmentList] = useList(INITIAL_DEPARTMENTS);
   const [members, memberList] = useList(INITIAL_MEMBERS);
@@ -101,11 +107,14 @@ export default function ManagerPage() {
 
   /* ───── Navigation ───── */
   const selectTab = (id) =>
-    id === "logout" ? setLogoutOpen(true) : setActiveTab(id);
+    id === "logout"
+      ? setLogoutOpen(true)
+      : navigate(`/manager/${id === "overview" ? "dashboard" : id}`);
 
   const changeRole = (next) => {
     setRoleKey(next);
-    if (!ROLES[next].permissions.includes(activeTab)) setActiveTab("overview");
+    if (!ROLES[next].permissions.includes(activeTab))
+      navigate("/manager/dashboard");
     notify(
       `Switched workspace view to ${ROLES[next].label} (${ROLES[next].user.name})`,
       "info",
@@ -289,16 +298,6 @@ export default function ManagerPage() {
     notify(`Budget policy saved for ${budget.category}.`);
   };
 
-  const createRecurring = (rec) => {
-    recurringList.add(rec);
-    notify(`Scheduled recurring payment "${rec.title}".`);
-  };
-
-  const toggleRecurring = (id) => {
-    recurringList.patch(id, toggle("status", "Active", "Paused"));
-    notify("Recurring schedule status updated.");
-  };
-
   const allocateSavings = (id, amount) => {
     savingsList.patch(id, (g) => ({ allocated: g.allocated + amount }));
     notify(`Allocated ${money(amount)} to savings goal.`);
@@ -356,8 +355,9 @@ export default function ManagerPage() {
           departments,
         }}
         onDecideApproval={decideApproval}
-        onNavigate={setActiveTab}
-        onOpenNewTransfer={() => setActiveTab("transactions")}
+        onNavigate={selectTab}
+        onOpenNewTransfer={() => selectTab("transactions")}
+        onOpenLedger={() => selectTab("ledger")}
         onExportReport={() =>
           notify("Exported November financial statement (CSV & PDF).")
         }
@@ -387,13 +387,9 @@ export default function ManagerPage() {
     budgets: (
       <BudgetsView {...{ roleKey, budgets }} onSaveBudget={saveBudget} />
     ),
-    recurring: (
-      <RecurringView
-        {...{ roleKey, recurring, wallets }}
-        onCreateRecurring={createRecurring}
-        onToggleRecurring={toggleRecurring}
-      />
-    ),
+    ledger: <LedgerPage />,
+    "team-ledger": <TeamLedgerPage />,
+    recurring: <RecurringPage />,
     savings: (
       <SavingsView
         {...{ roleKey, savings }}
@@ -420,7 +416,7 @@ export default function ManagerPage() {
         {...{ notifications }}
         onMarkAllRead={markAllRead}
         onMarkRead={markRead}
-        onNavigate={setActiveTab}
+        onNavigate={selectTab}
       />
     ),
     profile: (

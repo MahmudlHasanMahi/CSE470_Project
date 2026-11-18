@@ -19,12 +19,13 @@ import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
 import FactCheckRounded from "@mui/icons-material/FactCheckRounded";
 import SwapHorizRounded from "@mui/icons-material/SwapHorizRounded";
 import GridViewRounded from "@mui/icons-material/GridViewRounded";
+import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
+import AutorenewRounded from "@mui/icons-material/AutorenewRounded";
 import SettingsRounded from "@mui/icons-material/SettingsRounded";
 import PersonRounded from "@mui/icons-material/PersonRounded";
 import LogoutRounded from "@mui/icons-material/LogoutRounded";
 import { Caption, lineColor } from "./SharedUI.jsx";
 import { motion } from "framer-motion";
-import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 const userAvatar = {
   width: 36,
@@ -49,6 +50,8 @@ const NAV_GROUPS = [
         Icon: FactCheckRounded,
         badgeKey: "approvals",
       },
+      { id: "ledger", label: "Ledger", Icon: ReceiptLongRounded },
+      { id: "recurring", label: "Recurring Payments", Icon: AutorenewRounded },
     ],
   },
   {
@@ -85,14 +88,13 @@ const NavigationBar = ({
   badges,
   isMobile,
 }) => {
-  const [selectedTab, setSelectedTab] = useState("Dashboard");
   const navigate = useNavigate();
   const location = useLocation();
 
   const basePath = location.pathname.split("/")[1];
+  const selectedTab = location.pathname.split("/")[2] || "dashboard";
 
   const handleNav = (id) => {
-    setSelectedTab(id);
     navigate(`/${basePath}/${id.toLowerCase()}`);
   };
   const mini = collapsed;
