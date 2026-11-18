@@ -30,6 +30,7 @@ model User {
 
   createdTxns Txn[] @relation("TxnCreatedBy")
 
+  financialScenarios FinancialScenario[]
   ledgerEntries     LedgerEntry[]
   importBatches     ImportBatch[]
   recurringPayments RecurringPayment[]
@@ -197,6 +198,35 @@ model Txn {
   @@map("txn")
 }
 
+model FinancialScenario {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items FinancialScenarioItem[]
+
+  @@index([userId, createdAt])
+  @@map("financial_scenario")
+}
+
+model FinancialScenarioItem {
+  id          String   @id @default(uuid())
+  scenarioId  String   @map("scenario_id")
+  changeType  String   @map("change_type") // "ADD_EXPENSE" | "REDUCE_EXPENSE" | "ADD_INCOME"
+  category    String? // free-text label for now 
+  amount      Decimal  @db.Decimal(14, 2)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  scenario FinancialScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  @@index([scenarioId])
+  @@map("financial_scenario_item")
+}
 
 
 //ZR

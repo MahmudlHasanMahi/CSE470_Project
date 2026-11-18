@@ -36,6 +36,8 @@ import {
 
 import { NOW, getScope, makeId, useList } from "./helpers.js";
 import EmployeePageLayout from "./views/EmployeePageLayout.jsx";
+import FinancialHealthView from "./views/FinancialHealthView.jsx";
+import FinancialScenariosView from "./views/FinancialScenariosView.jsx";
 
 
 //ZR
@@ -436,6 +438,11 @@ export default function EmployeePage({ basePath = "/employee" }) {
           <Route path="wallets" element={views["wallets"]} />
           <Route path="transactions" element={views["transactions"]} />
           <Route path="approvals" element={views["approvals"]} />
+          <Route path="financial-health" element={<FinancialHealthView />} />
+          <Route
+            path="financial-scenarios"
+            element={<FinancialScenariosView />}
+          />
           <Route path="notifications" element={views["notifications"]} />
           <Route path="profile" element={views["profile"]} />
           <Route path="settings" element={views["settings"]} />

@@ -22,6 +22,8 @@ import GridViewRounded from "@mui/icons-material/GridViewRounded";
 import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
 import AutorenewRounded from "@mui/icons-material/AutorenewRounded";
 import SettingsRounded from "@mui/icons-material/SettingsRounded";
+import MonitorHeartRounded from "@mui/icons-material/MonitorHeartRounded";
+import ScienceRounded from "@mui/icons-material/ScienceRounded";
 import PersonRounded from "@mui/icons-material/PersonRounded";
 import LogoutRounded from "@mui/icons-material/LogoutRounded";
 import { Caption, lineColor } from "./SharedUI.jsx";
@@ -52,6 +54,21 @@ const NAV_GROUPS = [
       },
       { id: "ledger", label: "Ledger", Icon: ReceiptLongRounded },
       { id: "recurring", label: "Recurring Payments", Icon: AutorenewRounded },
+    ],
+  },
+  {
+    group: "Insights",
+    items: [
+      {
+        id: "financial-health",
+        label: "Financial Health",
+        Icon: MonitorHeartRounded,
+      },
+      {
+        id: "financial-scenarios",
+        label: "Scenario Planning",
+        Icon: ScienceRounded,
+      },
     ],
   },
   {
