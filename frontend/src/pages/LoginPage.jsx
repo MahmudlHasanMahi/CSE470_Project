@@ -133,12 +133,14 @@ export default function LoginPage() {
       setError("Please enter your email and password.");
       return;
     }
-    const { email, password } = form;
-    e.preventDefault();
-    login.mutate(
-      { email, password },
-      { onSuccess: () => (window.location.href = "/login/") },
-    );
+    login.mutate(form, {
+      onSuccess: (data) => {
+        console.log(data);
+      },
+      onError: (error) => {
+        setError(error.message);
+      },
+    });
   };
 
   return (

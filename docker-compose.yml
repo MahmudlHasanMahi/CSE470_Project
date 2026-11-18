@@ -3,6 +3,11 @@ services:
     build:
       context: ./frontend
       target: development
+    command: >
+      sh -c "npm install &&
+            npm run build &&
+            npm run dev -- --host 0.0.0.0"
+
     ports:
       - "5173:5173"
     volumes:
@@ -17,6 +22,15 @@ services:
     build:
       context: ./backend
       target: development
+    command: >
+      sh -c "npm install &&
+            npx prisma generate &&
+            npx prisma migrate deploy &&
+            npx prisma db seed &&
+            npm run start:dev &
+            npx prisma studio --port 5555 --hostname 0.0.0.0 &
+            wait
+            "
     container_name: ekpocket_backend
     ports:
       - "3000:3000"
