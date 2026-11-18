@@ -36,6 +36,8 @@ import {
 
 import { NOW, getScope, makeId, useList } from "./helpers.js";
 import EmployeePageLayout from "./views/EmployeePageLayout.jsx";
+import FinancialHealthView from "./views/FinancialHealthView.jsx";
+import FinancialScenariosView from "./views/FinancialScenariosView.jsx";
 
 const toggle = (key, a, b) => (item) => ({ [key]: item[key] === a ? b : a });
 
@@ -427,6 +429,11 @@ export default function EmployeePage() {
           <Route path="wallets" element={views["wallets"]} />
           <Route path="transactions" element={views["transactions"]} />
           <Route path="approvals" element={views["approvals"]} />
+          <Route path="financial-health" element={<FinancialHealthView />} />
+          <Route
+            path="financial-scenarios"
+            element={<FinancialScenariosView />}
+          />
           <Route path="notifications" element={views["notifications"]} />
           <Route path="profile" element={views["profile"]} />
           <Route path="settings" element={views["settings"]} />

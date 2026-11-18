@@ -20,6 +20,8 @@ import FactCheckRounded from "@mui/icons-material/FactCheckRounded";
 import SwapHorizRounded from "@mui/icons-material/SwapHorizRounded";
 import GridViewRounded from "@mui/icons-material/GridViewRounded";
 import SettingsRounded from "@mui/icons-material/SettingsRounded";
+import MonitorHeartRounded from "@mui/icons-material/MonitorHeartRounded";
+import ScienceRounded from "@mui/icons-material/ScienceRounded";
 import PersonRounded from "@mui/icons-material/PersonRounded";
 import LogoutRounded from "@mui/icons-material/LogoutRounded";
 import { Caption, lineColor } from "./SharedUI.jsx";
@@ -48,6 +50,21 @@ const NAV_GROUPS = [
         label: "Approvals",
         Icon: FactCheckRounded,
         badgeKey: "approvals",
+      },
+    ],
+  },
+  {
+    group: "Insights",
+    items: [
+      {
+        id: "financial-health",
+        label: "Financial Health",
+        Icon: MonitorHeartRounded,
+      },
+      {
+        id: "financial-scenarios",
+        label: "Scenario Planning",
+        Icon: ScienceRounded,
       },
     ],
   },
