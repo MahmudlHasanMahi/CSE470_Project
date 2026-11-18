@@ -13,6 +13,8 @@ import {
   ListItemText,
   Tooltip,
 } from "@mui/material";
+import InsightsRounded from "@mui/icons-material/InsightsRounded";
+import PieChartRounded from "@mui/icons-material/PieChartRounded";
 import NotificationsRounded from "@mui/icons-material/NotificationsRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
@@ -46,6 +48,8 @@ const NAV_GROUPS = [
     items: [
       { id: "wallets", label: "Wallets", Icon: AccountBalanceWalletRounded },
       { id: "transactions", label: "Transactions", Icon: SwapHorizRounded },
+      { id: "analytics", label: "Spending Analysis", Icon: InsightsRounded },
+      { id: "budgets", label: "Monthly Budgets", Icon: PieChartRounded },
       {
         id: "approvals",
         label: "Approvals",
@@ -108,12 +112,14 @@ const NavigationBar = ({
   const navigate = useNavigate();
   const location = useLocation();
 
+  const currentTab = location.pathname.split("/")[2] || "dashboard";
   const basePath = location.pathname.split("/")[1];
   const selectedTab = location.pathname.split("/")[2] || "dashboard";
 
   const handleNav = (id) => {
-    navigate(`/${basePath}/${id.toLowerCase()}`);
-  };
+  navigate(`/${basePath}/${id.toLowerCase()}`);
+};
+
   const mini = collapsed;
   return (
     <Box
@@ -199,7 +205,7 @@ const NavigationBar = ({
               )}
               <List disablePadding sx={{ display: "grid", gap: 0.4 }}>
                 {items.map(({ id, label, Icon, badgeKey }) => {
-                  const active = selectedTab === id;
+                  const active = currentTab === id;
                   const count = badges[badgeKey] || 0;
                   const icon = <Icon fontSize="small" />;
                   const button = (

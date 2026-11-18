@@ -29,6 +29,8 @@ model User {
   walletMemberships WalletMember[]
 
   createdTxns Txn[] @relation("TxnCreatedBy")
+  categories  Category[]
+  budgets     Budget[]
 
   financialScenarios FinancialScenario[]
   ledgerEntries     LedgerEntry[]
@@ -186,16 +188,64 @@ model Txn {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
-  sourceWallet      Wallet?          @relation("TxnSource", fields: [sourceWalletId], references: [id], onDelete: Restrict)
-  destinationWallet Wallet?          @relation("TxnDestination", fields: [destinationWalletId], references: [id], onDelete: Restrict)
-  externalAccount   ExternalAccount? @relation(fields: [externalAccountId], references: [id], onDelete: Restrict)
-  creator           User             @relation("TxnCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  sourceWallet        Wallet?          @relation("TxnSource", fields: [sourceWalletId], references: [id], onDelete: Restrict)
+  destinationWallet   Wallet?          @relation("TxnDestination", fields: [destinationWalletId], references: [id], onDelete: Restrict)
+  externalAccount     ExternalAccount? @relation(fields: [externalAccountId], references: [id], onDelete: Restrict)
+  creator             User             @relation("TxnCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  category            Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([sourceWalletId, occurredAt])
+  @@index([createdBy, occurredAt])
   @@index([destinationWalletId])
   @@index([externalAccountId])
   @@index([type])
   @@map("txn")
+}
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   @default("expense") // "expense" | "income"
+  color     String?
+  userId    String?  @map("user_id") // null = system default
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user        User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  txns        Txn[]
+  budgetItems BudgetItem[]
+
+  @@unique([userId, name, type])
+  @@index([userId])
+  @@map("category")
+}
+
+model Budget {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  month     String   // "YYYY-MM"
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items BudgetItem[]
+
+  @@unique([userId, month])
+  @@map("budget")
+}
+
+model BudgetItem {
+  id               String   @id @default(uuid())
+  budgetId         String   @map("budget_id")
+  categoryId       String   @map("category_id")
+  limitAmount      Decimal  @map("limit_amount") @db.Decimal(14, 2)
+  warningThreshold Int      @default(80) @map("warning_threshold")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([budgetId, categoryId])
+  @@map("budget_item")
 }
 
 model FinancialScenario {

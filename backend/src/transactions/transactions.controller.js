@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  Query,
   Bind,
   Dependencies,
   Req,
@@ -16,16 +17,18 @@ export class TransactionsController {
     this.transactionsService = transactionsService;
   }
 
-  @Get('me')
-  @Bind(Req())
-  me(req) {
-    return this.users.getMe(req.user.id);
-  }
   @Get('me/transactions')
   @Bind(Req())
   getMyTransactions(req) {
     return this.transactionsService.getAllTransactionForUser(req.user.id);
   }
+
+  @Get('me/transactions/analytics')
+  @Bind(Req(), Query('month'))
+  getMyAnalytics(req, month) {
+    return this.transactionsService.getExpenseAnalytics(req.user.id, month);
+  }
+
   @Post('me/transactions')
   @Bind(Body(), Req())
   create(body, req) {
