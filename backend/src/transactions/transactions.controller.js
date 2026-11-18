@@ -1,4 +1,12 @@
-import { Controller, Get, Bind, Dependencies, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Bind,
+  Dependencies,
+  Req,
+} from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 
 @Controller('users')
@@ -17,5 +25,10 @@ export class TransactionsController {
   @Bind(Req())
   getMyTransactions(req) {
     return this.transactionsService.getAllTransactionForUser(req.user.id);
+  }
+  @Post('me/transactions')
+  @Bind(Body(), Req())
+  create(body, req) {
+    return this.transactionsService.createTransactionForUser(req.user.id, body);
   }
 }
