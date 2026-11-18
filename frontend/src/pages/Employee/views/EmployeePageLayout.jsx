@@ -6,12 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 const EmployeePageLayout = () => {
   const [roleKey, setRoleKey] = useState("dept_admin");
   const [activeTab, setActiveTab] = useState("overview");
-  const [logoutOpen, setLogoutOpen] = useState(false);
-  const [toast, setToast] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+
   const badges = {
     // approvals: scope.byDept(approvals.filter((a) => a.status === "pending"))
     // .length,

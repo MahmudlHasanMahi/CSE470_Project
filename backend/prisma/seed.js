@@ -192,214 +192,339 @@ async function main() {
     });
   }
 
-  // 6. Transaction helper
+  // 6. NEW: External accounts
+  // ExternalAccount has no unique field except id, so we look it up by
+  // owner + label first and only create it if it does not exist yet.
+  // Look up by wallet + label; update if found, create if not.
+  async function externalAccount(where, data) {
+    const found = await prisma.externalAccount.findFirst({ where });
+    if (found)
+      return prisma.externalAccount.update({ where: { id: found.id }, data });
+    return prisma.externalAccount.create({ data });
+  }
+
+  const supplierAccount = await externalAccount(
+    { walletId: departmentWallet.id, label: 'Office Supplier Ltd' },
+    {
+      walletId: departmentWallet.id,
+      label: 'Office Supplier Ltd',
+      method: 'bank',
+      providerName: 'BRAC Bank',
+      accountHolder: 'Office Supplier Ltd',
+      accountLast4: '4821',
+      status: 'active',
+    },
+  );
+
+  const companyBankAccount = await externalAccount(
+    { walletId: departmentWallet.id, label: 'Company Bank Account' },
+    {
+      walletId: departmentWallet.id,
+      label: 'Company Bank Account',
+      method: 'bank',
+      providerName: 'City Bank',
+      accountHolder: 'Engineering Dept',
+      accountLast4: '7305',
+      status: 'active',
+    },
+  );
+
+  const employeeBkash = await externalAccount(
+    { walletId: employeeWallet.id, label: 'My bKash' },
+    {
+      walletId: employeeWallet.id,
+      label: 'My bKash',
+      method: 'mobile_wallet',
+      providerName: 'bKash',
+      accountHolder: 'Sarah Employee',
+      accountLast4: '0192',
+      status: 'active',
+    },
+  );
+
+  // 7. Transaction helper (one object, so the order of values cannot be mixed up)
   const daysAgo = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  function transaction(
+  function transaction({
     reference,
+    type,
     amount,
     status,
-    sourceWalletId,
-    destinationWalletId,
+    sourceWalletId = null,
+    destinationWalletId = null,
+    externalAccountId = null,
     description,
     createdBy,
     days,
-  ) {
+  }) {
     return {
       reference,
+      type,
       amount,
       status,
       sourceWalletId,
       destinationWalletId,
+      externalAccountId,
       description,
       createdBy,
       occurredAt: daysAgo(days),
     };
   }
 
-  // 7. Sample transactions
+  // 8. Sample transactions
+  // type rules:
+  //   expense  = source wallet only
+  //   deposit  = destination wallet only
+  //   transfer = source + destination wallet
+  //   payout   = source wallet + external account
+  //   payin    = destination wallet + external account
   const transactions = [
-    // Employee personal wallet expenses
-    transaction(
-      'SEED-E-001',
-      600,
-      'completed',
-      employeeWallet.id,
-      null,
-      'Lunch payment',
-      employee.id,
-      23,
-    ),
-    transaction(
-      'SEED-E-002',
-      1200,
-      'completed',
-      employeeWallet.id,
-      null,
-      'Internet bill',
-      employee.id,
-      18,
-    ),
-    transaction(
-      'SEED-E-003',
-      500,
-      'completed',
-      employeeWallet.id,
-      null,
-      'Transportation',
-      employee.id,
-      5,
-    ),
-    transaction(
-      'SEED-E-004',
-      1000,
-      'pending',
-      employeeWallet.id,
-      null,
-      'Shopping payment',
-      employee.id,
-      1,
-    ),
+    // ---------- Employee personal wallet expenses ----------
+    transaction({
+      reference: 'SEED-E-001',
+      type: 'expense',
+      amount: 600,
+      status: 'completed',
+      sourceWalletId: employeeWallet.id,
+      description: 'Lunch payment',
+      createdBy: employee.id,
+      days: 23,
+    }),
+    transaction({
+      reference: 'SEED-E-002',
+      type: 'expense',
+      amount: 1200,
+      status: 'completed',
+      sourceWalletId: employeeWallet.id,
+      description: 'Internet bill',
+      createdBy: employee.id,
+      days: 18,
+    }),
+    transaction({
+      reference: 'SEED-E-003',
+      type: 'expense',
+      amount: 500,
+      status: 'completed',
+      sourceWalletId: employeeWallet.id,
+      description: 'Transportation',
+      createdBy: employee.id,
+      days: 5,
+    }),
+    transaction({
+      reference: 'SEED-E-004',
+      type: 'expense',
+      amount: 1000,
+      status: 'pending',
+      sourceWalletId: employeeWallet.id,
+      description: 'Shopping payment',
+      createdBy: employee.id,
+      days: 1,
+    }),
 
-    // Employee receives money from department
-    transaction(
-      'SEED-E-005',
-      4000,
-      'completed',
-      null,
-      employeeWallet.id,
-      'Monthly allowance',
-      manager.id,
-      26,
-    ),
-    transaction(
-      'SEED-E-006',
-      2000,
-      'completed',
-      null,
-      employeeWallet.id,
-      'Freelance income',
-      employee.id,
-      12,
-    ),
+    // ---------- Employee top-up (destination wallet only) ----------
+    transaction({
+      reference: 'SEED-E-005',
+      type: 'deposit',
+      amount: 4000,
+      status: 'completed',
+      destinationWalletId: employeeWallet.id,
+      description: 'Monthly allowance',
+      createdBy: manager.id,
+      days: 26,
+    }),
 
-    // Department wallet receives funding
-    transaction(
-      'SEED-D-001',
-      50000,
-      'completed',
-      null,
-      departmentWallet.id,
-      'Monthly department budget',
-      manager.id,
-      28,
-    ),
-    transaction(
-      'SEED-D-002',
-      25000,
-      'completed',
-      null,
-      departmentWallet.id,
-      'Additional department funding',
-      manager.id,
-      16,
-    ),
+    // ---------- Department wallet funding (destination wallet only) ----------
+    transaction({
+      reference: 'SEED-D-001',
+      type: 'deposit',
+      amount: 50000,
+      status: 'completed',
+      destinationWalletId: departmentWallet.id,
+      description: 'Monthly department budget',
+      createdBy: manager.id,
+      days: 28,
+    }),
 
-    // Department wallet expenses
-    transaction(
-      'SEED-D-003',
-      4500,
-      'completed',
-      departmentWallet.id,
-      null,
-      'Office equipment',
-      employee.id,
-      24,
-    ),
-    transaction(
-      'SEED-D-004',
-      12000,
-      'completed',
-      departmentWallet.id,
-      null,
-      'Software subscriptions',
-      manager.id,
-      20,
-    ),
-    transaction(
-      'SEED-D-005',
-      3500,
-      'completed',
-      departmentWallet.id,
-      null,
-      'Office supplies',
-      employee.id,
-      13,
-    ),
-    transaction(
-      'SEED-D-006',
-      2000,
-      'completed',
-      departmentWallet.id,
-      null,
-      'Team lunch',
-      employee.id,
-      8,
-    ),
-    transaction(
-      'SEED-D-007',
-      8000,
-      'pending',
-      departmentWallet.id,
-      null,
-      'New monitor purchase',
-      employee.id,
-      3,
-    ),
+    // ---------- Department wallet expenses ----------
+    transaction({
+      reference: 'SEED-D-003',
+      type: 'expense',
+      amount: 4500,
+      status: 'completed',
+      sourceWalletId: departmentWallet.id,
+      description: 'Office equipment',
+      createdBy: employee.id,
+      days: 24,
+    }),
+    transaction({
+      reference: 'SEED-D-004',
+      type: 'expense',
+      amount: 12000,
+      status: 'completed',
+      sourceWalletId: departmentWallet.id,
+      description: 'Software subscriptions',
+      createdBy: manager.id,
+      days: 20,
+    }),
+    transaction({
+      reference: 'SEED-D-005',
+      type: 'expense',
+      amount: 3500,
+      status: 'completed',
+      sourceWalletId: departmentWallet.id,
+      description: 'Office supplies',
+      createdBy: employee.id,
+      days: 13,
+    }),
+    transaction({
+      reference: 'SEED-D-006',
+      type: 'expense',
+      amount: 2000,
+      status: 'completed',
+      sourceWalletId: departmentWallet.id,
+      description: 'Team lunch',
+      createdBy: employee.id,
+      days: 8,
+    }),
+    transaction({
+      reference: 'SEED-D-007',
+      type: 'expense',
+      amount: 8000,
+      status: 'pending',
+      sourceWalletId: departmentWallet.id,
+      description: 'New monitor purchase',
+      createdBy: employee.id,
+      days: 3,
+    }),
 
-    // Transfers: Department -> Employee
-    transaction(
-      'SEED-T-001',
-      3000,
-      'completed',
-      departmentWallet.id,
-      employeeWallet.id,
-      'Employee reimbursement',
-      manager.id,
-      17,
-    ),
-    transaction(
-      'SEED-T-002',
-      1500,
-      'completed',
-      departmentWallet.id,
-      employeeWallet.id,
-      'Travel allowance',
-      manager.id,
-      7,
-    ),
-    transaction(
-      'SEED-T-003',
-      2000,
-      'pending',
-      departmentWallet.id,
-      employeeWallet.id,
-      'Pending employee reimbursement',
-      manager.id,
-      2,
-    ),
+    // ---------- Transfers: Department -> Employee ----------
+    transaction({
+      reference: 'SEED-T-001',
+      type: 'transfer',
+      amount: 3000,
+      status: 'completed',
+      sourceWalletId: departmentWallet.id,
+      destinationWalletId: employeeWallet.id,
+      description: 'Employee reimbursement',
+      createdBy: manager.id,
+      days: 17,
+    }),
+    transaction({
+      reference: 'SEED-T-002',
+      type: 'transfer',
+      amount: 1500,
+      status: 'completed',
+      sourceWalletId: departmentWallet.id,
+      destinationWalletId: employeeWallet.id,
+      description: 'Travel allowance',
+      createdBy: manager.id,
+      days: 7,
+    }),
+    transaction({
+      reference: 'SEED-T-003',
+      type: 'transfer',
+      amount: 2000,
+      status: 'pending',
+      sourceWalletId: departmentWallet.id,
+      destinationWalletId: employeeWallet.id,
+      description: 'Pending employee reimbursement',
+      createdBy: manager.id,
+      days: 2,
+    }),
 
-    // Transfers: Employee -> Department
-    transaction(
-      'SEED-T-004',
-      1000,
-      'completed',
-      employeeWallet.id,
-      departmentWallet.id,
-      'Returned unused advance',
-      employee.id,
-      4,
-    ),
+    // ---------- Transfers: Employee -> Department ----------
+    transaction({
+      reference: 'SEED-T-004',
+      type: 'transfer',
+      amount: 1000,
+      status: 'completed',
+      sourceWalletId: employeeWallet.id,
+      destinationWalletId: departmentWallet.id,
+      description: 'Returned unused advance',
+      createdBy: employee.id,
+      days: 4,
+    }),
+
+    // ---------- NEW: Payouts (wallet -> external account) ----------
+    transaction({
+      reference: 'SEED-P-001',
+      type: 'payout',
+      amount: 15000,
+      status: 'completed',
+      sourceWalletId: departmentWallet.id,
+      externalAccountId: supplierAccount.id,
+      description: 'Supplier invoice payment',
+      createdBy: manager.id,
+      days: 14,
+    }),
+    transaction({
+      reference: 'SEED-P-002',
+      type: 'payout',
+      amount: 6000,
+      status: 'pending',
+      sourceWalletId: departmentWallet.id,
+      externalAccountId: supplierAccount.id,
+      description: 'Supplier advance payment',
+      createdBy: employee.id,
+      days: 2,
+    }),
+    transaction({
+      reference: 'SEED-P-003',
+      type: 'payout',
+      amount: 2500,
+      status: 'completed',
+      sourceWalletId: employeeWallet.id,
+      externalAccountId: employeeBkash.id,
+      description: 'Cash out to bKash',
+      createdBy: employee.id,
+      days: 10,
+    }),
+    transaction({
+      reference: 'SEED-P-004',
+      type: 'payout',
+      amount: 1800,
+      status: 'failed',
+      sourceWalletId: employeeWallet.id,
+      externalAccountId: employeeBkash.id,
+      description: 'Cash out to bKash (provider declined)',
+      createdBy: employee.id,
+      days: 6,
+    }),
+
+    // ---------- NEW: Payins (external account -> wallet) ----------
+    transaction({
+      reference: 'SEED-I-001',
+      type: 'payin',
+      amount: 25000,
+      status: 'completed',
+      destinationWalletId: departmentWallet.id,
+      externalAccountId: companyBankAccount.id,
+      description: 'Additional department funding from bank',
+      createdBy: manager.id,
+      days: 16,
+    }),
+    transaction({
+      reference: 'SEED-I-002',
+      type: 'payin',
+      amount: 2000,
+      status: 'completed',
+      destinationWalletId: employeeWallet.id,
+      externalAccountId: employeeBkash.id,
+      description: 'Freelance income from bKash',
+      createdBy: employee.id,
+      days: 12,
+    }),
+    transaction({
+      reference: 'SEED-I-003',
+      type: 'payin',
+      amount: 3000,
+      status: 'pending',
+      destinationWalletId: employeeWallet.id,
+      externalAccountId: employeeBkash.id,
+      description: 'Top-up from bKash (waiting for confirmation)',
+      createdBy: employee.id,
+      days: 1,
+    }),
   ];
 
   for (const txn of transactions) {
@@ -419,6 +544,7 @@ async function main() {
   console.log('Employee: employee@example.com');
   console.log('Password: password123');
   console.log('Wallets: 3');
+  console.log('External accounts: 3');
   console.log('Transactions:', transactions.length);
 }
 

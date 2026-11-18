@@ -250,10 +250,7 @@ export function NavigationShell({
   onSelectTab,
   roleKey,
   onChangeRole,
-  notifications,
-  onMarkAllRead,
-  onMarkRead,
-  searchData,
+
   badges,
   children,
 }) {
