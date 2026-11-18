@@ -11,6 +11,7 @@ import SwapHorizRounded from "@mui/icons-material/SwapHorizRounded";
 import FactCheckRounded from "@mui/icons-material/FactCheckRounded";
 import PieChartRounded from "@mui/icons-material/PieChartRounded";
 import AutorenewRounded from "@mui/icons-material/AutorenewRounded";
+import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
 import SavingsRounded from "@mui/icons-material/SavingsRounded";
 import CorporateFareRounded from "@mui/icons-material/CorporateFareRounded";
 import GroupsRounded from "@mui/icons-material/GroupsRounded";
@@ -37,6 +38,8 @@ export const NAV_GROUPS = [
       { id: "wallets", label: "Wallets", Icon: AccountBalanceWalletRounded },
       { id: "transactions", label: "Transactions", Icon: SwapHorizRounded },
       { id: "approvals", label: "Approvals", Icon: FactCheckRounded, badgeKey: "approvals" },
+      { id: "ledger", label: "Ledger", Icon: ReceiptLongRounded },
+      { id: "team-ledger", label: "Team Ledger", Icon: GroupsRounded },
       { id: "budgets", label: "Budgets", Icon: PieChartRounded },
       { id: "recurring", label: "Recurring Payments", Icon: AutorenewRounded },
       { id: "savings", label: "Savings Goals", Icon: SavingsRounded },

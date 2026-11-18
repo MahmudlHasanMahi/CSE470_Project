@@ -32,6 +32,8 @@ import NotificationsRounded from "@mui/icons-material/NotificationsRounded";
 import PersonRounded from "@mui/icons-material/PersonRounded";
 import SettingsRounded from "@mui/icons-material/SettingsRounded";
 import LogoutRounded from "@mui/icons-material/LogoutRounded";
+import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
+import AutorenewRounded from "@mui/icons-material/AutorenewRounded";
 import MenuRounded from "@mui/icons-material/MenuRounded";
 import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
@@ -47,7 +49,7 @@ import { useLogout } from "../../../api/auth.api.js";
 export const NAV_GROUPS = [
   {
     group: "Overview",
-    items: [{ id: "overview", label: "Dashboard", Icon: GridViewRounded }],
+    items: [{ id: "dashboard", label: "Dashboard", Icon: GridViewRounded }],
   },
   {
     group: "Financial Management",
@@ -60,6 +62,8 @@ export const NAV_GROUPS = [
         Icon: FactCheckRounded,
         badgeKey: "approvals",
       },
+      { id: "ledger", label: "Ledger", Icon: ReceiptLongRounded },
+      { id: "recurring", label: "Recurring Payments", Icon: AutorenewRounded },
     ],
   },
   {

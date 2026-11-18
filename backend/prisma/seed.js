@@ -15,6 +15,7 @@ async function main() {
         'transaction:create',
         'transaction:read',
         'transaction:approve',
+        'ledger:read:department',
       ],
     },
     create: {
@@ -24,6 +25,30 @@ async function main() {
         'transaction:create',
         'transaction:read',
         'transaction:approve',
+        'ledger:read:department',
+      ],
+    },
+  });
+
+  await prisma.role.upsert({
+    where: { name: 'org_admin' },
+    update: {
+      permissions: [
+        'wallet:read',
+        'transaction:create',
+        'transaction:read',
+        'transaction:approve',
+        'ledger:read:organization',
+      ],
+    },
+    create: {
+      name: 'org_admin',
+      permissions: [
+        'wallet:read',
+        'transaction:create',
+        'transaction:read',
+        'transaction:approve',
+        'ledger:read:organization',
       ],
     },
   });

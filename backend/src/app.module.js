@@ -8,6 +8,18 @@ import { FinancialHealthModule } from './financial-health/financial-health.modul
 import { FinancialScenariosModule } from './financial-scenarios/financial-scenarios.module';
 @Module({
   imports: [PrismaModule, AuthModule, WebauthnModule, UsersModule, FinancialHealthModule, FinancialScenariosModule],
+
+import { LedgerModule } from './ledger/ledger.module';
+import { RecurringPaymentsModule } from './recurring-payments/recurring-payment.module';
+@Module({
+  imports: [
+    PrismaModule,
+    AuthModule,
+    WebauthnModule,
+    UsersModule,
+    LedgerModule,
+    RecurringPaymentsModule,
+  ],
   controllers: [HealthController],
 })
 export class AppModule {}
