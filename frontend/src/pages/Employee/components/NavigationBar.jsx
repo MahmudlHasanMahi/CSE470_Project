@@ -21,12 +21,15 @@ import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
 import FactCheckRounded from "@mui/icons-material/FactCheckRounded";
 import SwapHorizRounded from "@mui/icons-material/SwapHorizRounded";
 import GridViewRounded from "@mui/icons-material/GridViewRounded";
+import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
+import AutorenewRounded from "@mui/icons-material/AutorenewRounded";
 import SettingsRounded from "@mui/icons-material/SettingsRounded";
+import MonitorHeartRounded from "@mui/icons-material/MonitorHeartRounded";
+import ScienceRounded from "@mui/icons-material/ScienceRounded";
 import PersonRounded from "@mui/icons-material/PersonRounded";
 import LogoutRounded from "@mui/icons-material/LogoutRounded";
 import { Caption, lineColor } from "./SharedUI.jsx";
 import { motion } from "framer-motion";
-import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 const userAvatar = {
   width: 36,
@@ -52,6 +55,23 @@ const NAV_GROUPS = [
         label: "Approvals",
         Icon: FactCheckRounded,
         badgeKey: "approvals",
+      },
+      { id: "ledger", label: "Ledger", Icon: ReceiptLongRounded },
+      { id: "recurring", label: "Recurring Payments", Icon: AutorenewRounded },
+    ],
+  },
+  {
+    group: "Insights",
+    items: [
+      {
+        id: "financial-health",
+        label: "Financial Health",
+        Icon: MonitorHeartRounded,
+      },
+      {
+        id: "financial-scenarios",
+        label: "Scenario Planning",
+        Icon: ScienceRounded,
       },
     ],
   },
@@ -94,6 +114,7 @@ const NavigationBar = ({
 
   const currentTab = location.pathname.split("/")[2] || "dashboard";
   const basePath = location.pathname.split("/")[1];
+  const selectedTab = location.pathname.split("/")[2] || "dashboard";
 
   const handleNav = (id) => {
   navigate(`/${basePath}/${id.toLowerCase()}`);

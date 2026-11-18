@@ -36,6 +36,7 @@ import FactCheckRounded from "@mui/icons-material/FactCheckRounded";
 import SwapHorizRounded from "@mui/icons-material/SwapHorizRounded";
 import ErrorOutlineRounded from "@mui/icons-material/ErrorOutlineRounded";
 import AutorenewRounded from "@mui/icons-material/AutorenewRounded";
+import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
 import SendRounded from "@mui/icons-material/SendRounded";
 import DownloadRounded from "@mui/icons-material/DownloadRounded";
 import CheckRounded from "@mui/icons-material/CheckRounded";
@@ -108,6 +109,7 @@ function Header({
   pendingCount,
   onExportReport,
   onOpenNewTransfer,
+  onOpenLedger,
 }) {
   const { user, isOrg, isEmployee } = scope;
   const subtitle = isOrg
@@ -143,6 +145,13 @@ function Header({
         variants={fadeUp}
         sx={{ display: "flex", gap: 1.5 }}
       >
+        <Btn
+          variant="outlined"
+          startIcon={<ReceiptLongRounded />}
+          onClick={onOpenLedger}
+        >
+          Ledger
+        </Btn>
         {!isEmployee && (
           <Btn
             variant="outlined"
@@ -866,6 +875,7 @@ export function OverviewView({
   onDecideApproval,
   onNavigate,
   onOpenNewTransfer,
+  onOpenLedger,
   onExportReport,
 }) {
   const scope = getScope(roleKey);
@@ -903,6 +913,7 @@ export function OverviewView({
         pendingCount={d.pending.length}
         onExportReport={onExportReport}
         onOpenNewTransfer={onOpenNewTransfer}
+        onOpenLedger={onOpenLedger}
       />
 
       <Box

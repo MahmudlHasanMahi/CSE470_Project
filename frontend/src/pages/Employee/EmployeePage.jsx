@@ -1,5 +1,5 @@
 import { TransactionsView } from "./views/TransactionsView.jsx";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { ApprovalsView } from "./views/ApprovalsView.jsx";
 import { WalletsView } from "./views/WalletsView.jsx";
 import { ExpenseAnalyticsView } from "./views/ExpenseAnalyticsView.jsx";
@@ -38,6 +38,15 @@ import {
 
 import { NOW, getScope, makeId, useList } from "./helpers.js";
 import EmployeePageLayout from "./views/EmployeePageLayout.jsx";
+import FinancialHealthView from "./views/FinancialHealthView.jsx";
+import FinancialScenariosView from "./views/FinancialScenariosView.jsx";
+
+
+//ZR
+import LedgerPage from "./views/LedgerPage.jsx";
+import RecurringPage from "./views/RecurringPage.jsx";
+
+
 
 const toggle = (key, a, b) => (item) => ({ [key]: item[key] === a ? b : a });
 
@@ -58,9 +67,9 @@ const postedTx = ({ gateway, ...tx }) => ({
   ...tx,
 });
 
-export default function EmployeePage() {
+export default function EmployeePage({ basePath = "/employee" }) {
+  const navigate = useNavigate();
   const [roleKey, setRoleKey] = useState("dept_admin");
-  const [activeTab, setActiveTab] = useState("overview");
 
   const [wallets, walletList] = useList(INITIAL_WALLETS);
   const [budgets, budgetList] = useList(INITIAL_BUDGETS);
@@ -76,6 +85,7 @@ export default function EmployeePage() {
 
   const scope = getScope(roleKey);
   const { user } = scope;
+  const navigateToTab = (tab) => navigate(`${basePath}/${tab}`);
 
   const notify = (message, severity = "success") =>
     setToast({ open: true, message, severity });
@@ -339,8 +349,9 @@ export default function EmployeePage() {
           departments,
         }}
         onDecideApproval={decideApproval}
-        onNavigate={setActiveTab}
-        onOpenNewTransfer={() => setActiveTab("transactions")}
+        onNavigate={navigateToTab}
+        onOpenNewTransfer={() => navigateToTab("transactions")}
+        onOpenLedger={() => navigateToTab("ledger")}
         onExportReport={() =>
           notify("Exported November financial statement (CSV & PDF).")
         }
@@ -403,7 +414,7 @@ export default function EmployeePage() {
         {...{ notifications }}
         onMarkAllRead={markAllRead}
         onMarkRead={markRead}
-        onNavigate={setActiveTab}
+        onNavigate={navigateToTab}
       />
     ),
     profile: (
@@ -420,10 +431,10 @@ export default function EmployeePage() {
   return (
     <>
       <Routes>
-        <Route path="/employee" element={<EmployeePageLayout />}>
+        <Route path={basePath} element={<EmployeePageLayout />}>
           <Route
             index
-            element={<Navigate to="/employee/dashboard" replace />}
+            element={<Navigate to={`${basePath}/dashboard`} replace />}
           />
           <Route path="dashboard" element={views["overview"]} />
           
@@ -432,9 +443,19 @@ export default function EmployeePage() {
           <Route path="analytics" element={<ExpenseAnalyticsView />} />
           <Route path="budgets" element={<MonthlyBudgetsView />} />
           <Route path="approvals" element={views["approvals"]} />
+          <Route path="financial-health" element={<FinancialHealthView />} />
+          <Route
+            path="financial-scenarios"
+            element={<FinancialScenariosView />}
+          />
           <Route path="notifications" element={views["notifications"]} />
           <Route path="profile" element={views["profile"]} />
           <Route path="settings" element={views["settings"]} />
+          
+          {/* ZR*/}
+
+          <Route path="ledger" element={<LedgerPage />} />
+          <Route path="recurring" element={<RecurringPage />} />
         </Route>
       </Routes>
     </>
