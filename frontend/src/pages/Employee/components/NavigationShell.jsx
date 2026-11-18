@@ -22,6 +22,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import InsightsRounded from "@mui/icons-material/InsightsRounded";
+import PieChartRounded from "@mui/icons-material/PieChartRounded";
 import { alpha } from "@mui/material/styles";
 import { motion } from "framer-motion";
 import GridViewRounded from "@mui/icons-material/GridViewRounded";
@@ -54,6 +56,8 @@ export const NAV_GROUPS = [
     items: [
       { id: "wallets", label: "Wallets", Icon: AccountBalanceWalletRounded },
       { id: "transactions", label: "Transactions", Icon: SwapHorizRounded },
+      { id: "analytics", label: "Spending Analysis", Icon: InsightsRounded },
+      { id: "budgets", label: "Monthly Budgets", Icon: PieChartRounded },
       {
         id: "approvals",
         label: "Approvals",

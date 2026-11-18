@@ -1,1 +1,6 @@
 migrations
+!prisma/migrations/
+!prisma/migrations/20261118190000_add_expense_tables/
+!prisma/migrations/20261118190000_add_expense_tables/migration.sql
+!prisma/migrations/20261112000000_core_schema/
+!prisma/migrations/20261112000000_core_schema/migration.sql

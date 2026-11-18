@@ -2,6 +2,8 @@ import { TransactionsView } from "./views/TransactionsView.jsx";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ApprovalsView } from "./views/ApprovalsView.jsx";
 import { WalletsView } from "./views/WalletsView.jsx";
+import { ExpenseAnalyticsView } from "./views/ExpenseAnalyticsView.jsx";
+import { MonthlyBudgetsView } from "./views/MonthlyBudgetsView.jsx";
 import { Alert, Snackbar } from "@mui/material";
 import { useState } from "react";
 import Dashboard from "./views/Dashboard";
@@ -424,8 +426,11 @@ export default function EmployeePage() {
             element={<Navigate to="/employee/dashboard" replace />}
           />
           <Route path="dashboard" element={views["overview"]} />
+          
           <Route path="wallets" element={views["wallets"]} />
           <Route path="transactions" element={views["transactions"]} />
+          <Route path="analytics" element={<ExpenseAnalyticsView />} />
+          <Route path="budgets" element={<MonthlyBudgetsView />} />
           <Route path="approvals" element={views["approvals"]} />
           <Route path="notifications" element={views["notifications"]} />
           <Route path="profile" element={views["profile"]} />
