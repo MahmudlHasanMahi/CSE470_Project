@@ -166,7 +166,6 @@ export class TransactionsService {
 
     return this.prisma.$transaction(async (tx) => {
       if (sourceWalletId) {
-        
         const r = await tx.wallet.updateMany({
           where: { id: sourceWalletId, balance: { gte: amount } },
           data: { balance: { decrement: amount } },
@@ -188,8 +187,7 @@ export class TransactionsService {
           amount,
           status: 'posted',
           categoryId: body.categoryId || body.category || null,
-          description:
-            [body.merchant, body.notes].filter(Boolean).join(' - ') || null,
+          description: body.description,
           sourceWalletId,
           destinationWalletId,
           externalAccountId,
@@ -295,7 +293,11 @@ export class TransactionsService {
           count: c.count,
           sharePct: totalNum > 0 ? Math.round((cur / totalNum) * 100) : 0,
           momChangePct:
-            prev > 0 ? Math.round(((cur - prev) / prev) * 100) : cur > 0 ? 100 : 0,
+            prev > 0
+              ? Math.round(((cur - prev) / prev) * 100)
+              : cur > 0
+                ? 100
+                : 0,
         };
       })
       .sort((a, b) => b.amount - a.amount);
@@ -303,16 +305,22 @@ export class TransactionsService {
     const prevNum = Number(previousTotal.toFixed(2));
     const momDelta = Number((totalNum - prevNum).toFixed(2));
     const momDeltaPct =
-      prevNum > 0 ? Math.round((momDelta / prevNum) * 100) : totalNum > 0 ? 100 : 0;
+      prevNum > 0
+        ? Math.round((momDelta / prevNum) * 100)
+        : totalNum > 0
+          ? 100
+          : 0;
 
-    const monthlyTrend = Array.from(monthlyTotals.entries()).map(([ym, dec]) => {
-      const [y, m] = ym.split('-').map(Number);
-      const label = new Date(Date.UTC(y, m - 1, 1)).toLocaleString('en-US', {
-        month: 'short',
-        timeZone: 'UTC',
-      });
-      return { month: ym, label, totalSpent: Number(dec.toFixed(2)) };
-    });
+    const monthlyTrend = Array.from(monthlyTotals.entries()).map(
+      ([ym, dec]) => {
+        const [y, m] = ym.split('-').map(Number);
+        const label = new Date(Date.UTC(y, m - 1, 1)).toLocaleString('en-US', {
+          month: 'short',
+          timeZone: 'UTC',
+        });
+        return { month: ym, label, totalSpent: Number(dec.toFixed(2)) };
+      },
+    );
 
     return {
       month,

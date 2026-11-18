@@ -53,6 +53,10 @@ import {
 
 import { useCreateTransaction } from "../../../api/transaction.api.js";
 import { formatDate } from "../../../utils/format";
+import {
+  useCategories,
+  useCreateCategory,
+} from "../../../api/categories.api.js";
 
 const CATEGORIES = [
   "Travel & Summits",
@@ -88,11 +92,16 @@ function Filter({ label, value, onChange, options, width }) {
       onChange={(e) => onChange(e.target.value)}
       sx={{ minWidth: width }}
     >
-      {options.map((o) => (
-        <MenuItem key={o.value ?? o} value={o.value ?? o}>
-          {o.label ?? o}
-        </MenuItem>
-      ))}
+      {options.map((o) => {
+        const optionValue = o.value ?? o;
+        const optionLabel = o.label ?? o;
+
+        return (
+          <MenuItem key={optionValue} value={optionValue}>
+            {optionLabel}
+          </MenuItem>
+        );
+      })}
     </TextField>
   );
 }
@@ -112,24 +121,33 @@ export function TransactionsView({
 
   const [bankAccounts, setBankAccounts] = useState([]);
   const [search, setSearch] = useState("");
+
   const [filters, setFilters] = useState({
     status: "All",
     type: "All",
     wallet: "All",
     range: "30d",
   });
-  const [sort, setSort] = useState({ by: "id", order: "desc" });
+
+  const [sort, setSort] = useState({
+    by: "id",
+    order: "desc",
+  });
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(6);
 
   const [selectedId, setSelectedId] = useState(null);
 
-  // Dialog & Form states
+  // Dialog and form states
   const [submitOpen, setSubmitOpen] = useState(false);
   const [createAccountOpen, setCreateAccountOpen] = useState(false);
   const [form, setForm] = useState(BLANK_EXPENSE);
 
-  // Dropdown options
+  // -------------------------------------------------------
+  // WALLET OPTIONS
+  // -------------------------------------------------------
+
   const walletOptions = walletsb.map((w) => ({
     value: `wallet:${w.id ?? w.name}`,
     label: `${w.name}${w.balance != null ? ` (${money(w.balance)})` : ""}`,
@@ -137,82 +155,287 @@ export function TransactionsView({
 
   const destinationOptions = [
     ...walletOptions,
+
     ...bankAccounts.map((a) => {
-      // Fix: Safely fallback between API keys and local keys to prevent "undefined"
       const bankName = a.bankName || a.providerName || "";
       const accName = a.name || a.accountHolder || "";
       const accNum = a.number || a.accountNumber || "";
+
       return {
         value: `bank:${a.id}`,
-        label: `${bankName ? `${bankName} - ` : ""}${accName}${accNum ? ` (${accNum})` : ""}`,
+        label: `${bankName ? `${bankName} - ` : ""}${accName}${
+          accNum ? ` (${accNum})` : ""
+        }`,
       };
     }),
   ];
 
-  // Filters & Sorting logic
-  const setFilter = (key) => (value) =>
-    setFilters((f) => ({ ...f, [key]: value }));
-  const handleSort = (by) =>
-    setSort((s) => ({
-      by,
-      order: s.by === by && s.order === "asc" ? "desc" : "asc",
+  // -------------------------------------------------------
+  // FILTER HELPERS
+  // -------------------------------------------------------
+
+  const setFilter = (key) => (value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
     }));
 
-  const filtered = useMemo(() => {
-    const direction = sort.order === "asc" ? 1 : -1;
-    const sortValue = (t) =>
-      sort.by === "amount" ? Math.abs(t.amount) : t[sort.by];
+    setPage(0);
+  };
 
-    return transactions
-      .filter(
-        (t) =>
-          matches(search, t.id, t.desc, t.merchant, t.actor) &&
-          (filters.status === "All" || t.status === filters.status) &&
-          (filters.type === "All" || t.type === filters.type) &&
-          (filters.wallet === "All" || t.wallet === filters.wallet),
-      )
-      .sort((a, b) =>
-        sortValue(a) < sortValue(b)
-          ? -direction
-          : sortValue(a) > sortValue(b)
-            ? direction
-            : 0,
+  const handleSearchChange = (value) => {
+    setSearch(value);
+    setPage(0);
+  };
+
+  const handleSort = (by) => {
+    setSort((prev) => ({
+      by,
+      order: prev.by === by && prev.order === "asc" ? "desc" : "asc",
+    }));
+
+    setPage(0);
+  };
+
+  // Get transaction date
+  const getTransactionDate = (t) => {
+    return t.occurredAt || t.date || t.createdAt || t.created_at || null;
+  };
+
+  // Get account information from different API shapes
+  const getAccountInfo = (account) => {
+    if (!account) return [];
+
+    if (typeof account === "object") {
+      return [account.id, account.name, account.walletId, account.accountId]
+        .filter((v) => v != null)
+        .map(String);
+    }
+
+    return [String(account)];
+  };
+
+  // Check whether a transaction involves the selected wallet
+  const transactionHasWallet = (transaction, walletId) => {
+    if (walletId === "All") return true;
+
+    const wallet = walletsb.find((w) => String(w.id) === String(walletId));
+
+    const possibleValues = [
+      ...getAccountInfo(transaction.source),
+      ...getAccountInfo(transaction.destination),
+      ...getAccountInfo(transaction.sourceAccount),
+      ...getAccountInfo(transaction.destinationAccount),
+      transaction.sourceWalletId,
+      transaction.destinationWalletId,
+      transaction.walletId,
+      transaction.wallet,
+    ]
+      .filter((v) => v != null)
+      .map(String);
+
+    return (
+      possibleValues.includes(String(walletId)) ||
+      possibleValues.includes(`wallet:${walletId}`) ||
+      (wallet && possibleValues.includes(String(wallet.name)))
+    );
+  };
+
+  // -------------------------------------------------------
+  // FILTER AND SORT TRANSACTIONS
+  // -------------------------------------------------------
+
+  const filtered = useMemo(() => {
+    const now = new Date();
+
+    // Calculate date range
+    let startDate = null;
+
+    if (filters.range === "7d") {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 7);
+    } else if (filters.range === "30d") {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 30);
+    } else if (filters.range === "90d") {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 90);
+    }
+
+    const searchTerm = search.trim().toLowerCase();
+
+    const result = transactions.filter((t) => {
+      // Search
+      const searchableFields = [
+        t.id,
+        t.reference,
+        t.description,
+        t.desc,
+        t.merchant,
+        t.actor,
+        t.source?.name,
+        t.destination?.name,
+        t.sourceAccount?.name,
+        t.destinationAccount?.name,
+      ];
+
+      const matchesSearch =
+        !searchTerm ||
+        searchableFields.some((value) =>
+          String(value ?? "")
+            .toLowerCase()
+            .includes(searchTerm),
+        );
+
+      // Status
+      const matchesStatus =
+        filters.status === "All" ||
+        String(t.status ?? "").toLowerCase() === filters.status.toLowerCase();
+
+      // Transaction type
+      const matchesType =
+        filters.type === "All" ||
+        String(t.type ?? "").toLowerCase() === filters.type.toLowerCase();
+
+      // Wallet
+      const matchesWallet = transactionHasWallet(t, filters.wallet);
+
+      // Date range
+      let matchesDate = true;
+
+      if (startDate) {
+        const transactionDate = getTransactionDate(t);
+        const parsedDate = transactionDate ? new Date(transactionDate) : null;
+
+        matchesDate =
+          parsedDate &&
+          !Number.isNaN(parsedDate.getTime()) &&
+          parsedDate >= startDate &&
+          parsedDate <= now;
+      }
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesType &&
+        matchesWallet &&
+        matchesDate
       );
-  }, [transactions, search, filters, sort]);
+    });
+
+    // Sorting
+    const direction = sort.order === "asc" ? 1 : -1;
+
+    const getSortValue = (t) => {
+      if (sort.by === "amount") {
+        return Math.abs(Number(t.amount) || 0);
+      }
+
+      if (sort.by === "date") {
+        const date = getTransactionDate(t);
+        return date ? new Date(date).getTime() : 0;
+      }
+
+      return t[sort.by] ?? "";
+    };
+
+    result.sort((a, b) => {
+      const valueA = getSortValue(a);
+      const valueB = getSortValue(b);
+
+      if (typeof valueA === "number" && typeof valueB === "number") {
+        return (valueA - valueB) * direction;
+      }
+
+      return (
+        String(valueA).localeCompare(String(valueB), undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }) * direction
+      );
+    });
+
+    return result;
+  }, [transactions, search, filters, sort, walletsb]);
+
+  // -------------------------------------------------------
+  // PAGINATION
+  // -------------------------------------------------------
+
+  const pageCount = Math.ceil(filtered.length / rowsPerPage);
+
+  // Keep page valid when filters reduce the result count
+  useEffect(() => {
+    if (pageCount > 0 && page >= pageCount) {
+      setPage(pageCount - 1);
+    } else if (pageCount === 0 && page !== 0) {
+      setPage(0);
+    }
+  }, [page, pageCount]);
 
   const pageRows = useMemo(
     () => filtered.slice(page * rowsPerPage, (page + 1) * rowsPerPage),
     [filtered, page, rowsPerPage],
   );
+
   const selected = useMemo(
     () => transactions.find((t) => t.id === selectedId),
     [transactions, selectedId],
   );
 
+  // -------------------------------------------------------
+  // TABLE COLUMNS
+  // -------------------------------------------------------
+
   const columns = [
     {
       label: "Reference",
       sortKey: "id",
-      sx: { fontWeight: 600, color: "primary.main" },
+      sx: {
+        fontWeight: 600,
+        color: "primary.main",
+      },
       key: "id",
     },
-    { label: "Description", render: (t) => <TwoLine title={t.description} /> },
+    {
+      label: "Description",
+      render: (t) => <TwoLine title={t.description ?? t.desc ?? "—"} />,
+    },
     {
       label: "Type",
       render: (t) => (
         <Chip
           size="small"
-          label={t.type}
+          label={t.type ?? "—"}
           variant="outlined"
           sx={{ borderRadius: "8px" }}
         />
       ),
     },
-    { label: "Source", render: (t) => t.source?.name ?? "—" },
-    { label: "Destination", render: (t) => t.destination?.name ?? "—" },
-    { label: "Initiated By", key: "actor" },
-    { label: "Date", key: "date", render: (t) => formatDate(t.occurredAt) },
-    { label: "Status", render: (t) => <StatusChip status={t.status} /> },
+    {
+      label: "Source",
+      render: (t) => t.source?.name ?? t.sourceAccount?.name ?? "—",
+    },
+    {
+      label: "Destination",
+      render: (t) => t.destination?.name ?? t.destinationAccount?.name ?? "—",
+    },
+    {
+      label: "Initiated By",
+      key: "actor",
+    },
+    {
+      label: "Date",
+      sortKey: "date",
+      render: (t) => {
+        const date = getTransactionDate(t);
+        return date ? formatDate(date) : "—";
+      },
+    },
+    {
+      label: "Status",
+      render: (t) => <StatusChip status={t.status} />,
+    },
     {
       label: "Amount",
       sortKey: "amount",
@@ -220,6 +443,10 @@ export function TransactionsView({
       render: (t) => <Amount value={t.amount} />,
     },
   ];
+
+  // -------------------------------------------------------
+  // RENDER
+  // -------------------------------------------------------
 
   return (
     <Stagger>
@@ -236,6 +463,7 @@ export function TransactionsView({
           </Btn>
         }
       >
+        {/* FILTER BAR */}
         <Box
           sx={{
             display: "flex",
@@ -247,12 +475,10 @@ export function TransactionsView({
         >
           <SearchField
             value={search}
-            onChange={(v) => {
-              setSearch(v);
-              setPage(0);
-            }}
-            placeholder="Search reference, merchant, member..."
+            onChange={handleSearchChange}
+            placeholder="Search reference, description, merchant..."
           />
+
           <Filter
             label="Status"
             width={130}
@@ -260,6 +486,7 @@ export function TransactionsView({
             onChange={setFilter("status")}
             options={["All", "Posted", "Pending", "Failed"]}
           />
+
           <Filter
             label="Type"
             width={135}
@@ -267,29 +494,77 @@ export function TransactionsView({
             onChange={setFilter("type")}
             options={["All", "Expense", "Recurring", "Transfer", "Top-Up"]}
           />
+
           <Filter
             label="Wallet"
             width={185}
             value={filters.wallet}
             onChange={setFilter("wallet")}
             options={[
-              { value: "All", label: "All Wallets" },
-              ...wallets.map((w) => w.name),
+              {
+                value: "All",
+                label: "All Wallets",
+              },
+              ...walletsb.map((w) => ({
+                value: String(w.id),
+                label: w.name,
+              })),
             ]}
           />
+
           <Filter
             label="Date Range"
-            width={140}
+            width={145}
             value={filters.range}
             onChange={setFilter("range")}
             options={[
-              { value: "7d", label: "Last 7 days" },
-              { value: "30d", label: "Last 30 days" },
-              { value: "90d", label: "This quarter" },
+              {
+                value: "7d",
+                label: "Last 7 days",
+              },
+              {
+                value: "30d",
+                label: "Last 30 days",
+              },
+              {
+                value: "90d",
+                label: "Last 90 days",
+              },
+              {
+                value: "all",
+                label: "All Time",
+              },
             ]}
           />
+
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              setSearch("");
+              setFilters({
+                status: "All",
+                type: "All",
+                wallet: "All",
+                range: "30d",
+              });
+              setSort({
+                by: "id",
+                order: "desc",
+              });
+              setPage(0);
+            }}
+          >
+            Clear Filters
+          </Button>
         </Box>
 
+        {/* ACTIVE RESULT COUNT */}
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          Showing {filtered.length} of {transactions.length} transactions
+        </Typography>
+
+        {/* TABLE */}
         {filtered.length === 0 ? (
           <EmptyState />
         ) : (
@@ -302,6 +577,7 @@ export function TransactionsView({
               sort={sort}
               onSort={handleSort}
             />
+
             <TablePagination
               component="div"
               count={filtered.length}
@@ -318,11 +594,13 @@ export function TransactionsView({
         )}
       </Panel>
 
+      {/* TRANSACTION DETAILS */}
       <TransactionDetailsDrawer
         selected={selected}
         onClose={() => setSelectedId(null)}
       />
 
+      {/* CREATE TRANSACTION */}
       <InitiateTransactionDialog
         open={submitOpen}
         onClose={() => setSubmitOpen(false)}
@@ -333,18 +611,20 @@ export function TransactionsView({
         onAddDestination={() => setCreateAccountOpen(true)}
       />
 
+      {/* ADD DESTINATION ACCOUNT */}
       <AddDestinationAccountDialog
         open={createAccountOpen}
         onClose={() => setCreateAccountOpen(false)}
         onAccountAdded={(acc, typePrefix) => {
-          // Add to lists and auto-select the account in the form
           setBankAccounts((prev) =>
             prev.some((a) => a.id === acc.id) ? prev : [...prev, acc],
           );
+
           setForm((prev) => ({
             ...prev,
             destinationAccount: `${typePrefix}:${acc.id}`,
           }));
+
           setCreateAccountOpen(false);
         }}
       />
@@ -443,83 +723,105 @@ function InitiateTransactionDialog({
   onAddDestination,
 }) {
   const create = useCreateTransaction();
+  const { data: categories = [], isLoading } = useCategories();
 
-  // Reset form only when dialog newly opens
+  // Reset form whenever the dialog opens
   useEffect(() => {
     if (open) {
-      setForm(BLANK_EXPENSE);
+      setForm({
+        ...BLANK_EXPENSE,
+        category: "",
+      });
       create.reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, setForm]);
+  }, [open]);
+
+  // Automatically select the first category after loading
+  useEffect(() => {
+    if (!open || !categories.length) return;
+
+    setForm((prev) => {
+      const selectedCategoryExists = categories.some(
+        (c) => String(c.id) === String(prev.category),
+      );
+
+      if (selectedCategoryExists) return prev;
+
+      return {
+        ...prev,
+        category: String(categories[0].id),
+      };
+    });
+  }, [open, categories, setForm]);
 
   const submit = () => {
     create.mutate(
       {
-        amount: form.amount,
+        amount: Number(form.amount),
         category: form.category,
         merchant: form.merchant,
         notes: form.notes,
         sourceAccount: form.sourceAccount,
         destinationAccount: form.destinationAccount,
+        description: form.desc,
       },
-      { onSuccess: () => onClose() },
+      {
+        onSuccess: () => onClose(),
+      },
     );
   };
 
   const errorMessage = (() => {
     const m = create.error?.response?.data?.message;
+
     return Array.isArray(m)
       ? m[0]
       : (m ?? (create.error ? "Could not create transaction" : null));
   })();
+
   const isInvalid =
-    !form.desc.trim() ||
+    !form.desc?.trim() ||
     !form.sourceAccount ||
     !form.destinationAccount ||
     form.sourceAccount === form.destinationAccount ||
-    !(Number(form.amount) > 0);
+    !(Number(form.amount) > 0) ||
+    !form.category;
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Initiate Transaction</DialogTitle>
+
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField
-            select
-            fullWidth
-            label="Transaction Type"
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
-          >
-            {["Expense", "Transfer", "Top-Up"].map((t) => (
-              <MenuItem key={t} value={t}>
-                {t}
-              </MenuItem>
-            ))}
-          </TextField>
-
+          {/* Purpose / Description */}
           <TextField
             fullWidth
             label="Purpose / Description"
             value={form.desc}
-            onChange={(e) => setForm({ ...form, desc: e.target.value })}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                desc: e.target.value,
+              }))
+            }
           />
 
+          {/* Source Wallet */}
           <TextField
             select
             fullWidth
             label="From Wallet"
             value={form.sourceAccount}
             onChange={(e) =>
-              setForm({
-                ...form,
+              setForm((prev) => ({
+                ...prev,
                 sourceAccount: e.target.value,
                 destinationAccount:
-                  form.destinationAccount === e.target.value
+                  prev.destinationAccount === e.target.value
                     ? ""
-                    : form.destinationAccount,
-              })
+                    : prev.destinationAccount,
+              }))
             }
           >
             {walletOptions.map((o) => (
@@ -529,6 +831,7 @@ function InitiateTransactionDialog({
             ))}
           </TextField>
 
+          {/* Destination Wallet / Account */}
           <Box>
             <TextField
               select
@@ -536,7 +839,10 @@ function InitiateTransactionDialog({
               label="To Wallet / Account"
               value={form.destinationAccount}
               onChange={(e) =>
-                setForm({ ...form, destinationAccount: e.target.value })
+                setForm((prev) => ({
+                  ...prev,
+                  destinationAccount: e.target.value,
+                }))
               }
             >
               {destinationOptions
@@ -547,6 +853,7 @@ function InitiateTransactionDialog({
                   </MenuItem>
                 ))}
             </TextField>
+
             <Button
               size="small"
               startIcon={<AddRounded />}
@@ -557,49 +864,63 @@ function InitiateTransactionDialog({
             </Button>
           </Box>
 
-          {form.type === "Expense" && (
-            <>
-              <TextField
-                fullWidth
-                label="Merchant / Recipient"
-                value={form.merchant}
-                onChange={(e) => setForm({ ...form, merchant: e.target.value })}
-              />
-              <TextField
-                select
-                fullWidth
-                label="Budget Category"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-              >
-                {CATEGORIES.map((c) => (
-                  <MenuItem key={c} value={c}>
-                    {c}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </>
-          )}
+          {/* Merchant */}
+          <TextField
+            fullWidth
+            label="Merchant / Recipient"
+            value={form.merchant}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                merchant: e.target.value,
+              }))
+            }
+          />
 
+          {/* Budget Category */}
+          <TextField
+            select
+            fullWidth
+            label="Budget Category"
+            value={String(form.category ?? "")}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                category: e.target.value,
+              }))
+            }
+            disabled={isLoading || !categories.length}
+          >
+            {categories.map((c) => (
+              <MenuItem key={c.id} value={String(c.id)}>
+                {c.name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          {/* Amount */}
           <TextField
             fullWidth
             type="number"
             label="Amount (BDT)"
             value={form.amount}
-            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                amount: e.target.value,
+              }))
+            }
             inputProps={{ min: 0 }}
           />
         </Stack>
       </DialogContent>
+
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose}>Cancel</Button>
+
         {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
 
-        <Button
-          variant="contained"
-          onClick={submit}
-          disabled={create.isPending}
-        >
+        <Button variant="contained" onClick={submit} disabled={isInvalid}>
           {create.isPending ? "Saving..." : "Create"}
         </Button>
       </DialogActions>
@@ -611,6 +932,7 @@ function AddDestinationAccountDialog({ open, onClose, onAccountAdded }) {
   const [type, setType] = useState("WALLET");
   const [query, setQuery] = useState("");
   const [searchId, setSearchId] = useState(null);
+
   const [newAccount, setNewAccount] = useState({
     providerName: "",
     accountHolder: "",
@@ -621,46 +943,87 @@ function AddDestinationAccountDialog({ open, onClose, onAccountAdded }) {
     isLoading: walletLoading,
     error: walletError,
   } = useWallet(type === "WALLET" ? searchId : null);
+
   const {
     data: bankData,
     isLoading: bankLoading,
     error: bankError,
   } = useExternalAccount(type === "BANK_ACCOUNT" ? searchId : null);
+
   const { mutate: createExternalAccount, isPending: isCreating } =
     useCreateExternalAccount();
 
-  // Reset state when dialog is toggled
+  const isSearching = walletLoading || bankLoading;
+
+  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setType("WALLET");
       setQuery("");
       setSearchId(null);
-      setNewAccount({ providerName: "", accountHolder: "" });
+
+      setNewAccount({
+        providerName: "",
+        accountHolder: "",
+      });
     }
   }, [open]);
 
-  const handleSearch = () => query.trim() && setSearchId(query.trim());
+  // Search for wallet or bank account
+  const handleSearch = () => {
+    const value = query.trim();
 
+    if (!value) return;
+
+    setSearchId(value);
+  };
+
+  // Change destination type
   const handleTypeChange = (newType) => {
     setType(newType);
     setQuery("");
     setSearchId(null);
+
+    setNewAccount({
+      providerName: "",
+      accountHolder: "",
+    });
   };
 
+  // Create a new external bank account
   const handleCreateBank = () => {
+    if (
+      !newAccount.providerName.trim() ||
+      !newAccount.accountHolder.trim() ||
+      !query.trim()
+    ) {
+      return;
+    }
+
     createExternalAccount(
       {
         providerName: newAccount.providerName.trim(),
         accountHolder: newAccount.accountHolder.trim(),
         accountNumber: query.trim(),
         method: "bank",
-        accountLast4: "2345",
+        accountLast4: query.trim().slice(-4),
         label: `${newAccount.providerName.trim()} Account`,
       },
       {
-        onSuccess: (acc) => onAccountAdded(acc, "bank"),
+        onSuccess: (acc) => {
+          onAccountAdded(acc, "bank");
+        },
       },
     );
+  };
+
+  const handleQueryChange = (value) => {
+    setQuery(value);
+    setSearchId(null);
+  };
+
+  const handleUseAccount = (account, accountType) => {
+    onAccountAdded(account, accountType);
   };
 
   return (
@@ -668,26 +1031,32 @@ function AddDestinationAccountDialog({ open, onClose, onAccountAdded }) {
       <DialogTitle>
         Add Destination {type === "WALLET" ? "Wallet" : "Account"}
       </DialogTitle>
+
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
+          {/* Destination Type */}
           <FormControl fullWidth>
             <InputLabel>Destination Type</InputLabel>
+
             <Select
               label="Destination Type"
               value={type}
               onChange={(e) => handleTypeChange(e.target.value)}
             >
               <MenuItem value="WALLET">Internal Wallet</MenuItem>
+
               <MenuItem value="BANK_ACCOUNT">External Bank Account</MenuItem>
             </Select>
           </FormControl>
 
+          {/* Description */}
           <Typography variant="body2" color="text.secondary">
             {type === "WALLET"
-              ? "Enter wallet ID to verify before adding."
-              : "Enter account number to check if it exists."}
+              ? "Enter a wallet ID to verify that it exists and is accessible."
+              : "Enter a bank account number to check whether it already exists."}
           </Typography>
 
+          {/* Search Input */}
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
             <TextField
               fullWidth
@@ -695,27 +1064,45 @@ function AddDestinationAccountDialog({ open, onClose, onAccountAdded }) {
                 type === "WALLET" ? "Internal Wallet ID" : "Bank Account Number"
               }
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setSearchId(null);
+              onChange={(e) => handleQueryChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSearch();
+                }
               }}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
+
             <Button
               variant="contained"
               onClick={handleSearch}
-              disabled={!query.trim() || walletLoading || bankLoading}
+              disabled={!query.trim() || isSearching}
               sx={{ minWidth: 130 }}
             >
-              {walletLoading || bankLoading ? "Searching..." : "Search"}
+              {isSearching ? (
+                <>
+                  <CircularProgress size={18} color="inherit" sx={{ mr: 1 }} />
+                  Searching...
+                </>
+              ) : (
+                "Search"
+              )}
             </Button>
           </Stack>
 
           {/* WALLET RESULTS */}
-          {type === "WALLET" && searchId === query && walletError && (
-            <Alert severity="warning">Wallet not found or unauthorized.</Alert>
+
+          {/* Wallet Not Found / Error */}
+          {type === "WALLET" && searchId === query.trim() && walletError && (
+            <Alert severity="warning">
+              <Typography fontWeight={600}>Wallet not found</Typography>
+              No wallet was found with this ID, or you don't have permission to
+              access it. Please check the wallet ID and try again.
+            </Alert>
           )}
-          {type === "WALLET" && searchId === query && walletData && (
+
+          {/* Wallet Found */}
+          {type === "WALLET" && searchId === query.trim() && walletData && (
             <Tile
               paper
               radius={12}
@@ -727,12 +1114,21 @@ function AddDestinationAccountDialog({ open, onClose, onAccountAdded }) {
                 borderColor: "success.main",
               }}
             >
-              <Typography fontWeight={700}>{walletData.name}</Typography>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <CheckCircleRounded color="success" />
+
+                <Typography fontWeight={700}>Wallet Found</Typography>
+              </Stack>
+
+              <KV label="Wallet Name">{walletData.name}</KV>
+
               <KV label="Wallet ID">{walletData.id}</KV>
+
               <KV label="Type">{walletData.type}</KV>
+
               <Button
                 variant="contained"
-                onClick={() => onAccountAdded(walletData, "wallet")}
+                onClick={() => handleUseAccount(walletData, "wallet")}
               >
                 Use This Wallet
               </Button>
@@ -740,7 +1136,9 @@ function AddDestinationAccountDialog({ open, onClose, onAccountAdded }) {
           )}
 
           {/* BANK ACCOUNT RESULTS */}
-          {type === "BANK_ACCOUNT" && searchId === query && bankData && (
+
+          {/* Bank Account Found */}
+          {type === "BANK_ACCOUNT" && searchId === query.trim() && bankData && (
             <Tile
               paper
               radius={12}
@@ -754,57 +1152,73 @@ function AddDestinationAccountDialog({ open, onClose, onAccountAdded }) {
             >
               <Stack direction="row" alignItems="center" spacing={1}>
                 <CheckCircleRounded color="success" />
+
                 <Typography fontWeight={700}>
                   Existing Bank Account Found
                 </Typography>
               </Stack>
+
               <KV label="Account Holder">
                 {bankData.name ?? bankData.accountHolder}
               </KV>
+
               <KV label="Account Number">
                 {bankData.accountNumber ?? bankData.number}
               </KV>
+
               <Button
                 variant="contained"
-                onClick={() => onAccountAdded(bankData, "bank")}
+                onClick={() => handleUseAccount(bankData, "bank")}
               >
                 Use This Account
               </Button>
             </Tile>
           )}
 
+          {/* Bank Account Not Found - Show Creation Form */}
           {type === "BANK_ACCOUNT" &&
-            searchId === query &&
+            searchId === query.trim() &&
             bankError?.response?.status === 404 && (
               <Box sx={{ display: "grid", gap: 2 }}>
+                <Alert severity="info">
+                  <Typography fontWeight={600}>
+                    Bank Account Not Found
+                  </Typography>
+                  No existing account matches this account number. You can add
+                  it using the details below.
+                </Alert>
+
                 <TextField
                   label="Bank Name"
                   value={newAccount.providerName}
                   onChange={(e) =>
-                    setNewAccount({
-                      ...newAccount,
+                    setNewAccount((prev) => ({
+                      ...prev,
                       providerName: e.target.value,
-                    })
+                    }))
                   }
                   fullWidth
                 />
+
                 <TextField
                   fullWidth
                   label="Account Holder Name"
                   value={newAccount.accountHolder}
                   onChange={(e) =>
-                    setNewAccount({
-                      ...newAccount,
+                    setNewAccount((prev) => ({
+                      ...prev,
                       accountHolder: e.target.value,
-                    })
+                    }))
                   }
                 />
+
                 <TextField
                   fullWidth
                   label="Account Number"
                   value={query}
                   disabled
                 />
+
                 <Button
                   variant="contained"
                   onClick={handleCreateBank}
@@ -820,7 +1234,7 @@ function AddDestinationAccountDialog({ open, onClose, onAccountAdded }) {
                         size={18}
                         color="inherit"
                         sx={{ mr: 1 }}
-                      />{" "}
+                      />
                       Creating...
                     </>
                   ) : (
@@ -829,13 +1243,27 @@ function AddDestinationAccountDialog({ open, onClose, onAccountAdded }) {
                 </Button>
               </Box>
             )}
+
+          {/* Other Bank Lookup Errors */}
+          {type === "BANK_ACCOUNT" &&
+            searchId === query.trim() &&
+            bankError &&
+            bankError.response?.status !== 404 && (
+              <Alert severity="error">
+                <Typography fontWeight={600}>
+                  Unable to verify bank account
+                </Typography>
+                Something went wrong while checking this account. Please try
+                again later.
+              </Alert>
+            )}
         </Stack>
       </DialogContent>
-      {type === "WALLET" && (
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={onClose}>Cancel</Button>
-        </DialogActions>
-      )}
+
+      {/* Dialog Actions */}
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onClose}>Cancel</Button>
+      </DialogActions>
     </Dialog>
   );
 }
