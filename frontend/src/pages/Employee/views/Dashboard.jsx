@@ -36,6 +36,7 @@ import FactCheckRounded from "@mui/icons-material/FactCheckRounded";
 import SwapHorizRounded from "@mui/icons-material/SwapHorizRounded";
 import ErrorOutlineRounded from "@mui/icons-material/ErrorOutlineRounded";
 import AutorenewRounded from "@mui/icons-material/AutorenewRounded";
+import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
 import SendRounded from "@mui/icons-material/SendRounded";
 import FingerprintRounded from "@mui/icons-material/FingerprintRounded";
 import WarningAmberRounded from "@mui/icons-material/WarningAmberRounded";
@@ -107,6 +108,7 @@ function Header({
   pendingCount,
   onExportReport,
   onOpenNewTransfer,
+  onOpenLedger,
 }) {
   const { data: user, isLoading, error } = useMe();
 
@@ -138,6 +140,13 @@ function Header({
         variants={fadeUp}
         sx={{ display: "flex", gap: 1.5 }}
       >
+        <Btn
+          variant="outlined"
+          startIcon={<ReceiptLongRounded />}
+          onClick={onOpenLedger}
+        >
+          Ledger
+        </Btn>
         <Btn
           variant="contained"
           startIcon={<SendRounded />}
@@ -215,7 +224,7 @@ function KpiGrid({ d, onNavigate }) {
       format: money,
       note: "Due within 14 days",
       icon: <AutorenewRounded fontSize="small" />,
-      onClick: undefined,
+      onClick: () => onNavigate("recurring"),
     },
   ];
 
@@ -508,6 +517,7 @@ const Dashboard = ({
   onDecideApproval,
   onNavigate,
   onOpenNewTransfer,
+  onOpenLedger,
   onExportReport,
 }) => {
   const scope = getScope(roleKey);
@@ -544,6 +554,7 @@ const Dashboard = ({
         pendingCount={d.pending.length}
         onExportReport={onExportReport}
         onOpenNewTransfer={onOpenNewTransfer}
+        onOpenLedger={onOpenLedger}
       />
 
       <Box

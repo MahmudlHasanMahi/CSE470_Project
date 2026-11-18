@@ -30,6 +30,10 @@ model User {
 
   createdTxns Txn[] @relation("TxnCreatedBy")
 
+  ledgerEntries     LedgerEntry[]
+  importBatches     ImportBatch[]
+  recurringPayments RecurringPayment[]
+
   @@map("users")
 }
 
@@ -167,4 +171,92 @@ model Txn {
   @@index([sourceWalletId, occurredAt])
   @@index([destinationWalletId])
   @@map("txn")
+}
+
+
+
+//ZR
+
+
+enum LedgerDirection {
+  IN
+  OUT
+}
+
+enum LedgerSource {
+  MANUAL
+  IMPORT
+  RECURRING
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum RecurringStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  COMPLETED
+}
+
+model ImportBatch {
+  id           String        @id @default(uuid())
+  userId       String        @map("user_id")          // CHECK: must match User.id type
+  fileName     String?       @map("file_name")
+  totalRows    Int           @map("total_rows")
+  importedRows Int           @map("imported_rows")
+  failedRows   Int           @map("failed_rows")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  user         User          @relation(fields: [userId], references: [id])
+  entries      LedgerEntry[]
+
+  @@map("import_batches")
+}
+
+model LedgerEntry {
+  id                 String           @id @default(uuid())
+  userId             String           @map("user_id")  // CHECK
+  reference          String
+  direction          LedgerDirection
+  amount             Decimal          @db.Decimal(14, 2)
+  currency           String           @default("BDT")
+  paymentMethod      String           @map("payment_method")
+  status             String           @default("COMPLETED")
+  description        String?
+  source             LedgerSource     @default(MANUAL)
+  occurredAt         DateTime         @map("occurred_at")
+  importBatchId      String?          @map("import_batch_id")
+  recurringPaymentId String?          @map("recurring_payment_id")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  user               User             @relation(fields: [userId], references: [id])
+  importBatch        ImportBatch?     @relation(fields: [importBatchId], references: [id])
+
+  @@unique([userId, reference])
+  @@index([userId, occurredAt])
+  @@map("ledger_entries")
+}
+
+model RecurringPayment {
+  id            String             @id @default(uuid())
+  userId        String             @map("user_id")     // CHECK
+  name          String
+  amount        Decimal            @db.Decimal(14, 2)
+  paymentMethod String             @map("payment_method")
+  recipient     String
+  frequency     RecurringFrequency
+  startDate     DateTime           @map("start_date")
+  nextDueDate   DateTime           @map("next_due_date")
+  endDate       DateTime?          @map("end_date")
+  autoPay       Boolean            @default(true) @map("auto_pay")
+  status        RecurringStatus    @default(ACTIVE)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  user          User               @relation(fields: [userId], references: [id])
+
+  @@index([userId, status, nextDueDate])
+  @@map("recurring_payments")
 }
